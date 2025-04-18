@@ -15,9 +15,10 @@ import {
   Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import AppTheme from '../../src/shared-theme/AppTheme';
-import ColorModeSelect from '../../src/shared-theme/ColorModeSelect';
+import AppTheme from '../shared-theme/AppTheme';
+import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { useNavigate } from 'react-router-dom';
+axios.defaults.withCredentials = true;
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -63,12 +64,13 @@ const SignIn = (props) => {
     }
     setError('');
     return true;
+
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validateInputs()) return;
-
+    
     try {
       setIsLoading(true);
       const response = await axios.post('http://localhost:5000/login', {
@@ -79,7 +81,7 @@ const SignIn = (props) => {
       });
 
       if (response.data.message === 'Login successful') {
-        navigate('/chat');
+        navigate('/dashboard');
       } else {
         setError('Invalid credentials');
       }
