@@ -16,10 +16,9 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
-import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { useNavigate } from 'react-router-dom';
+axios.defaults.baseURL = 'http://localhost:5000';
 axios.defaults.withCredentials = true;
-
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -67,36 +66,40 @@ const SignIn = (props) => {
 
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateInputs()) return;
-    
-    try {
-      setIsLoading(true);
-      const response = await axios.post('http://localhost:5000/login', {
-        username: email,
-        password: password,
-      }, {
-        withCredentials: true // Important for session cookies
-      });
+const handleSubmit = async (event) => {
+  event.preventDefault();
+  if (!validateInputs()) return;
 
-      if (response.data.message === 'Login successful') {
-        navigate('/dashboard');
+  try {
+    setIsLoading(true);
+    const response = await axios.post('http://localhost:5000/login', {
+      username: email,
+      password: password,
+    }, {
+      withCredentials: true // Important for session cookies
+    });
+
+    if (response.data.message === 'Login successful') {
+      // Check if the user is an admin and redirect accordingly
+      if (response.data.is_admin) {
+        navigate('/admin');
       } else {
-        setError('Invalid credentials');
+        navigate('/dashboard');
       }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
-    } finally {
-      setIsLoading(false);
+    } else {
+      setError('Invalid credentials');
     }
-  };
+  } catch (err) {
+    setError(err.response?.data?.error || 'Login failed');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <SignInContainer direction="column" justifyContent="space-between">
-        <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
         <Card variant="outlined">
           <Typography
             component="h1"

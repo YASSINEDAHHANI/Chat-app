@@ -5,7 +5,9 @@ import Dashboard from './pages/DashboardPage';
 import ProjectPage from './pages/Project';
 import Requirements from './pages/Requirements';
 import Generate from './pages/Generate';
+import AdminPage from './pages/AdminPage'; // Import the new AdminPage component
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute'; // We'll create this component next
 import axios from 'axios';
 
 // Configure axios defaults
@@ -51,6 +53,15 @@ function App() {
             <ProtectedRoute>
               <Generate />
             </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
           } 
         />
         
