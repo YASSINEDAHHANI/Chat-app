@@ -1,10 +1,8 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 
-axios.defaults.withCredentials = true;
-
-// Requirement categories
 const requirementCategories = [
   { value: "functionality", label: "Fonctionnalité" },
   { value: "ui", label: "Interface utilisateur" },
@@ -14,10 +12,7 @@ const requirementCategories = [
   { value: "compatibility", label: "Compatibilité" },
   { value: "accessibility", label: "Accessibilité" },
 ];
-
-// Enhanced styles object with improved visual design
 const styles = {
-  // Layout
   container: {
     display: "flex",
     minHeight: "100vh",
@@ -520,10 +515,10 @@ function Requirements() {
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
-        const projectResponse = await axios.get(`/projects/${projectId}`)
+        const projectResponse = await api.get(`/projects/${projectId}`)
         setProject(projectResponse.data.project)
 
-        const requirementsResponse = await axios.get(`/projects/${projectId}/requirements`)
+        const requirementsResponse = await api.get(`/projects/${projectId}/requirements`)
         setRequirements(requirementsResponse.data.requirements || [])
       } catch (error) {
         console.error("Error fetching project data:", error)
@@ -533,11 +528,11 @@ function Requirements() {
     }
 
     fetchProjectData()
-  }, [projectId])
+  }, [projectId, navigate])
 
   const handleAddRequirement = async () => {
     try {
-      const response = await axios.post(`/projects/${projectId}/requirements`, newRequirement)
+      const response = await api.post(`/projects/${projectId}/requirements`, newRequirement)
 
       setRequirements([...requirements, response.data.requirement])
       setNewRequirement({
@@ -567,7 +562,7 @@ function Requirements() {
         ...(selectedRequirement.priority_auto_generated ? {} : { priority: selectedRequirement.priority }),
       }
 
-      const response = await axios.put(`/requirements/${selectedRequirement.id}`, updateData)
+      const response = await api.put(`/requirements/${selectedRequirement.id}`, updateData)
 
       // Update the requirements list with the response data
       const updatedRequirements = requirements.map((req) =>
@@ -586,7 +581,7 @@ function Requirements() {
     if (!selectedRequirement) return
 
     try {
-      await axios.delete(`/requirements/${selectedRequirement.id}`)
+      await api.delete(`/requirements/${selectedRequirement.id}`)
 
       const updatedRequirements = requirements.filter((req) => req.id !== selectedRequirement.id)
       setRequirements(updatedRequirements)
@@ -849,8 +844,7 @@ function Requirements() {
                     ...styles.selectSmall,
                     ...(focusedInput === 'priority' ? styles.selectFocus : {})
                   }}
-                // Continuing from where your code left off:
-// Previous code had 'onFocus={() => setFo' which was incomplete
+
 
                   value={filterPriority}
                   onChange={(e) => setFilterPriority(e.target.value)}

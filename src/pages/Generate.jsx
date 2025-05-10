@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
-import axios from "axios"
-axios.defaults.withCredentials = true
+import api from "../api"
 
-// Requirement categories
 const requirementCategories = [
   { value: "functionality", label: "Fonctionnalité" },
   { value: "ui", label: "Interface utilisateur" },
@@ -13,8 +11,10 @@ const requirementCategories = [
   { value: "compatibility", label: "Compatibilité" },
   { value: "accessibility", label: "Accessibilité" },
 ]
-
-
+const getCategoryLabel = (value) => {
+  const category = requirementCategories.find(cat => cat.value === value);
+  return category ? category.label : value;
+}
 const styles = {
   // Layout
   container: {
@@ -713,7 +713,7 @@ function Generate() {
   useEffect(() => {
     const fetchRequirements = async () => {
       try {
-        const response = await axios.get(`/projects/${projectId}/requirements`)
+        const response = await api.get(`/projects/${projectId}/requirements`)
         setRequirements(response.data.requirements || [])
 
         // If a requirement ID was provided in the URL, select that requirement
@@ -780,7 +780,6 @@ function Generate() {
     setIsGenerating(true)
     setGeneratedTests("") // Clear previous tests
 
-    // Prepare data for the API call
     const data = {
       requirements: requirementsDescription,
       format_type: outputFormat,
@@ -800,7 +799,7 @@ function Generate() {
       console.log("Sending test generation request with data:", data)
 
       // Use axios consistently with the rest of the app
-      const response = await axios.post("/generate_test_cases", data)
+      const response = await api.post("/generate_test_cases", data)
 
       const testCases = response.data.test_cases || ""
       setGeneratedTests(testCases)
@@ -826,7 +825,7 @@ function Generate() {
       const reqId = selectedRequirement?.id || requirementId
       if (reqId) params.append("requirement_id", reqId)
 
-      const response = await axios.get(`/history?${params.toString()}`)
+      const response = await api.get(`/history?${params.toString()}`)
 
       const formattedHistory = response.data.history
         .filter((item) => item.test_cases)
@@ -842,59 +841,61 @@ function Generate() {
       setHistoryItems([])
     }
   }
-const fetchAndUpdateHistory = async (updatedTests = null, newActiveHistoryId = null) => {
-  try {
-    const params = new URLSearchParams();
-    params.append("project_id", projectId);
+  
+  const fetchAndUpdateHistory = async (updatedTests = null, newActiveHistoryId = null) => {
+    try {
+      const params = new URLSearchParams();
+      params.append("project_id", projectId);
 
-    const reqId = selectedRequirement?.id || requirementId;
-    if (reqId) params.append("requirement_id", reqId);
+      const reqId = selectedRequirement?.id || requirementId;
+      if (reqId) params.append("requirement_id", reqId);
 
-    const response = await axios.get(`/history?${params.toString()}`);
+      const response = await api.get(`/history?${params.toString()}`);
 
-    // Process history items with active state preserved
-    const formattedHistory = response.data.history
-      .filter((item) => item.test_cases)
-      .map((item) => {
-        const isActive = newActiveHistoryId 
-          ? item._id === newActiveHistoryId 
-          : activeHistoryId === item._id;
-        
-        // Override testCases if this is the active item and we have updated tests
-        const testCases = (isActive && updatedTests) ? updatedTests : item.test_cases;
-        
-        return {
-          id: item._id,
-          requirementId: item.requirement_id || "",
-          requirementTitle: item.requirement_title || "Unnamed Requirement",
-          version: item.version_number || 1,
-          testCases: testCases,
-          date: new Date(item.timestamp).toLocaleString(),
-          updateSource: item.update_type === "ai_assistant" 
-            ? "AI Assistant" 
-            : item.update_type === "manual_edit" 
-              ? "Manual Edit" 
-              : "Generated",
-          isActive: isActive,
-        };
+      // Process history items with active state preserved
+      const formattedHistory = response.data.history
+        .filter((item) => item.test_cases)
+        .map((item) => {
+          const isActive = newActiveHistoryId 
+            ? item._id === newActiveHistoryId 
+            : activeHistoryId === item._id;
+          
+          // Override testCases if this is the active item and we have updated tests
+          const testCases = (isActive && updatedTests) ? updatedTests : item.test_cases;
+          
+          return {
+            id: item._id,
+            requirementId: item.requirement_id || "",
+            requirementTitle: item.requirement_title || "Unnamed Requirement",
+            version: item.version_number || 1,
+            testCases: testCases,
+            date: new Date(item.timestamp).toLocaleString(),
+            updateSource: item.update_type === "ai_assistant" 
+              ? "AI Assistant" 
+              : item.update_type === "manual_edit" 
+                ? "Manual Edit" 
+                : "Generated",
+            isActive: isActive,
+          };
+        });
+
+      // Apply our updated history to state
+      setHistoryItems(formattedHistory);
+      
+      // If we got a new active history ID, update that state
+      if (newActiveHistoryId) {
+        setActiveHistoryId(newActiveHistoryId);
+      }
+      
+      console.log("History refreshed successfully", {
+        itemCount: formattedHistory.length,
+        activeId: newActiveHistoryId || activeHistoryId
       });
-
-    // Apply our updated history to state
-    setHistoryItems(formattedHistory);
-    
-    // If we got a new active history ID, update that state
-    if (newActiveHistoryId) {
-      setActiveHistoryId(newActiveHistoryId);
+    } catch (error) {
+      console.error("Error fetching history:", error);
     }
-    
-    console.log("History refreshed successfully", {
-      itemCount: formattedHistory.length,
-      activeId: newActiveHistoryId || activeHistoryId
-    });
-  } catch (error) {
-    console.error("Error fetching history:", error);
-  }
-};
+  };
+  
   // Also add this useEffect to fetch history items when component mounts
   useEffect(() => {
     // Fetch history for this specific requirement when component mounts or when selected requirement changes
@@ -915,7 +916,7 @@ const fetchAndUpdateHistory = async (updatedTests = null, newActiveHistoryId = n
           params.append("requirement_id", reqId)
         }
 
-        const response = await axios.get(`/history?${params.toString()}`)
+        const response = await api.get(`/history?${params.toString()}`)
 
         if (response.data.history && response.data.history.length > 0) {
           const formattedHistory = response.data.history
@@ -956,103 +957,111 @@ const fetchAndUpdateHistory = async (updatedTests = null, newActiveHistoryId = n
   }
 
   const saveEditedTestCases = async () => {
-  try {
-    // Get the current active history item
-    const activeHistoryItem = historyItems.find((item) => item.isActive);
+    try {
+      // Get the current active history item
+      const activeHistoryItem = historyItems.find((item) => item.isActive);
 
-    const requestData = {
-      test_cases: editedTests,
-      requirements: requirementsDescription,
-      project_id: projectId,
-      requirement_id: selectedRequirement?.id || null,
-      requirement_title: selectedRequirement?.title || newRequirementTitle,
-      update_type: "manual_edit",
-    };
+      const requestData = {
+        test_cases: editedTests,
+        requirements: requirementsDescription,
+        project_id: projectId,
+        requirement_id: selectedRequirement?.id || null,
+        requirement_title: selectedRequirement?.title || newRequirementTitle,
+        update_type: "manual_edit",
+      };
 
-    let newHistoryId = null;
+      let newHistoryId = null;
 
-    // If we have an active history item, update that item instead of creating a new one
-    if (activeHistoryItem && activeHistoryItem.id) {
-      requestData.history_id = activeHistoryItem.id;
+      // If we have an active history item, update that item instead of creating a new one
+      if (activeHistoryItem && activeHistoryItem.id) {
+        requestData.history_id = activeHistoryItem.id;
 
-      await axios.put(`/update_test_cases/${activeHistoryItem.id}`, requestData);
-      console.log("Updated existing test case history item:", activeHistoryItem.id);
-      newHistoryId = activeHistoryItem.id;
-    } else {
-      // Otherwise create a new history entry
-      const response = await axios.post("/save_test_cases", requestData);
-      console.log("Created new test case history item");
-      // If your backend returns the ID of the newly created history item, capture it here
-      if (response.data && response.data._id) {
-        newHistoryId = response.data._id;
+        await api.put(`/update_test_cases/${activeHistoryItem.id}`, requestData);
+        console.log("Updated existing test case history item:", activeHistoryItem.id);
+        newHistoryId = activeHistoryItem.id;
+      } else {
+        // Otherwise create a new history entry
+        const response = await api.post("/save_test_cases", requestData);
+        console.log("Created new test case history item");
+        // If your backend returns the ID of the newly created history item, capture it here
+        if (response.data && response.data._id) {
+          newHistoryId = response.data._id;
+        }
       }
+
+      // Update current displayed tests
+      setGeneratedTests(editedTests);
+      setIsEditing(false);
+
+      // Refresh history with our updated tests and active history ID
+      await fetchAndUpdateHistory(editedTests, newHistoryId || activeHistoryId);
+    } catch (error) {
+      console.error("Error saving test case edits:", error);
+      alert("Failed to save your changes. Please try again.");
     }
+  };
 
-    // Update current displayed tests
-    setGeneratedTests(editedTests);
+  const handleSaveEdits = () => {
+    saveEditedTestCases();
+  };
+
+  const loadHistoryVersion = (historyItem) => {
+    setGeneratedTests(historyItem.testCases);
+    setEditedTests(historyItem.testCases);
     setIsEditing(false);
-
-    // Refresh history with our updated tests and active history ID
-    await fetchAndUpdateHistory(editedTests, newHistoryId || activeHistoryId);
-  } catch (error) {
-    console.error("Error saving test case edits:", error);
-    alert("Failed to save your changes. Please try again.");
-  }
-};
-
-const handleSaveEdits = () => {
-  saveEditedTestCases();
-};
-
-const loadHistoryVersion = (historyItem) => {
-  setGeneratedTests(historyItem.testCases);
-  setEditedTests(historyItem.testCases);
-  setIsEditing(false);
-  
-  // Update active history ID
-  setActiveHistoryId(historyItem.id);
+    
+    // Update active history ID
+    setActiveHistoryId(historyItem.id);
 
     const updatedHistoryItems = historyItems.map((item) => ({
-    ...item,
-    isActive: item.id === historyItem.id,
-  }));
-  setHistoryItems(updatedHistoryItems);
-};
-
-  const getCategoryLabel = (categoryValue) => {
-    const category = requirementCategories.find((cat) => cat.value === categoryValue)
-    return category ? category.label : categoryValue
-  }
+      ...item,
+      isActive: item.id === historyItem.id,
+    }));
+    setHistoryItems(updatedHistoryItems);
+  };
 
   const handleChatSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!currentMessage.trim()) return
+    if (!currentMessage.trim()) return;
 
-    console.log("Starting chat request with message:", currentMessage)
-    console.log("Current generated tests:", generatedTests ? generatedTests.substring(0, 100) + "..." : "none")
-    console.log("Active history ID:", activeHistoryId)
+    console.log("Starting chat request with message:", currentMessage);
+    
+    // Add user message to chat immediately
+    const userMessage = { role: "user", content: currentMessage };
+    setChatMessages(prev => [...prev, userMessage]);
+    setCurrentMessage("");
 
-    const userMessage = { role: "user", content: currentMessage }
-    setChatMessages([...chatMessages, userMessage])
-    setCurrentMessage("")
+    // Add a temporary "Thinking..." message
+    const tempId = Date.now().toString();
+    setChatMessages(prev => [...prev, { 
+      id: tempId, 
+      role: "assistant", 
+      content: "Thinking...", 
+      isPartial: true 
+    }]);
 
     try {
-      // Make sure direct mode is explicitly set
+      // Prepare request data
       const requestData = {
-        message: currentMessage,
+        message: userMessage.content,
         project_id: projectId,
         test_cases: generatedTests || "",
         requirement_id: selectedRequirement?.id || null,
         requirement_title: selectedRequirement?.title || newRequirementTitle,
         requirements: requirementsDescription,
-        chat_history: chatMessages,
-        direct_mode: directChatMode, // Pass the direct mode state
-        active_history_id: activeHistoryId, // Send active history ID
-      }
+        chat_history: chatMessages.filter(msg => !msg.isPartial),
+        direct_mode: directChatMode,
+        active_history_id: activeHistoryId,
+      };
 
-      console.log("Sending chat request with data:", requestData)
+      console.log("Sending chat request with data:", {
+        message: requestData.message,
+        projectId: requestData.project_id,
+        directMode: requestData.direct_mode
+      });
 
+      // Use the fetch API instead of axios for better streaming support
       const response = await fetch("/chat_with_assistant", {
         method: "POST",
         headers: {
@@ -1060,94 +1069,130 @@ const loadHistoryVersion = (historyItem) => {
         },
         body: JSON.stringify(requestData),
         credentials: "include",
-      })
+      });
 
-      if (!response.ok) throw new Error("Server error")
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let responseText = ""
-      const tempMessages = [...chatMessages, userMessage]
-      let updatedTestsFound = false
+      // Process the text stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let responseText = "";
+      let updatedTestsFound = false;
+
+      // Remove the temporary thinking message
+      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
 
       while (true) {
-        const { done, value } = await reader.read()
+        const { done, value } = await reader.read();
+        
         if (done) {
-          console.log("Stream finished, updated tests found:", updatedTestsFound)
-          break
+          // Process any remaining data in the buffer
+          if (buffer.trim() && !updatedTestsFound) {
+            console.log("Stream complete, processing final buffer:", buffer);
+            // If there's leftover content but no test update was found, show it
+            setChatMessages(prev => [...prev, { 
+              role: "assistant", 
+              content: responseText || buffer
+            }]);
+          }
+          break;
         }
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split("\n\n")
-
+        // Decode this chunk and add to our buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete SSE messages (delimited by double newlines)
+        let lines = buffer.split("\n\n");
+        
+        // Keep the last potentially incomplete chunk in the buffer
+        buffer = lines.pop() || "";
+        
         for (const line of lines) {
+          if (!line.trim()) continue;
+          
           if (line.startsWith("data: ")) {
-            const data = line.replace("data: ", "")
-
+            const data = line.replace("data: ", "");
+            
             if (data === "[DONE]") {
-              console.log("Received [DONE] marker")
-              // Final handling when stream is complete
-              if (!updatedTestsFound) {
-                // If no explicit test cases were found but we got a response, add the response
-                setChatMessages([...tempMessages, { role: "assistant", content: responseText }])
+              console.log("Received DONE marker");
+              continue;
+            }
+            
+            try {
+              const parsed = JSON.parse(data);
+              
+              // Handle updated test cases
+              if (parsed.updated_test_cases) {
+                updatedTestsFound = true;
+                const updatedTests = parsed.updated_test_cases;
+                
+                console.log("Received updated test cases");
+                
+                setGeneratedTests(updatedTests);
+                setEditedTests(updatedTests);
+                
+                if (isEditing) setIsEditing(false);
+                
+                setChatMessages(prev => [...prev, { 
+                  role: "assistant", 
+                  content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
+                }]);
+                
+                fetchAndUpdateHistory(updatedTests, activeHistoryId);
               }
-              // We already added the message with updated test cases if they were found
-            } else {
-              try {
-                const parsed = JSON.parse(data)
-
-                // Check if this chunk contains updated test cases
-                if (parsed.updated_test_cases && !updatedTestsFound) {
-                  updatedTestsFound = true
-                  const updatedTests = parsed.updated_test_cases
-
-                  console.log("Received updated test cases:", updatedTests.substring(0, 100) + "...")
-
-                  // IMPORTANT: Update both state variables and use callbacks to ensure they're applied
-                  setGeneratedTests(updatedTests)
-                  setEditedTests(updatedTests)
-
-                  // Force UI update by closing edit mode if it's open
-                  if (isEditing) setIsEditing(false)
-
-                  // Add a confirmation message from the assistant
-                  setChatMessages([
-                    ...tempMessages,
-                    { role: "assistant", content: "✅ Modifications appliquées avec succès." },
-                  ])
-
-                  // Refresh history while maintaining active item
-                  fetchHistory().then(() => {
-                    setHistoryItems((prev) =>
-                      prev.map((item) => (item.id === activeHistoryId ? { ...item, testCases: updatedTests } : item)),
-                    )
-
-                    console.log("History refreshed after update")
-                  })
-                }
-                // Handle regular text chunks
-                else if (parsed.chunk) {
-                  responseText += parsed.chunk
-                  setChatMessages([...tempMessages, { role: "assistant", content: responseText, isPartial: true }])
-                }
-              } catch (error) {
-                console.error("Error parsing chunk:", error)
+              else if (parsed.chunk) {
+                responseText += parsed.chunk;
+                
+                setChatMessages(prev => {
+                  const assistantMsg = prev.find(msg => 
+                    msg.role === "assistant" && msg.isPartial
+                  );
+                  
+                  if (assistantMsg) {
+                    return prev.map(msg => 
+                      (msg.role === "assistant" && msg.isPartial) 
+                        ? { ...msg, content: responseText } 
+                        : msg
+                    );
+                  } else {
+                    return [...prev, { 
+                      role: "assistant", 
+                      content: responseText, 
+                      isPartial: true 
+                    }];
+                  }
+                });
               }
+              else if (parsed.error) {
+                console.error("Server error:", parsed.error);
+                setChatMessages(prev => [...prev, { 
+                  role: "assistant", 
+                  content: `Error: ${parsed.error}` 
+                }]);
+              }
+            } catch (error) {
+              console.warn("Error parsing SSE message:", error, "Raw data:", data);
             }
           }
         }
       }
     } catch (error) {
-      console.error("Chat error:", error)
-      setChatMessages([
-        ...chatMessages,
-        userMessage,
-        { role: "assistant", content: "Erreur de communication avec le serveur." },
-      ])
+      console.error("Chat error:", error);
+      
+      setChatMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== tempId);
+        
+        return [...filtered, {
+          role: "assistant",
+          content: `Erreur de communication avec le serveur. ${error.message || ""}`
+        }];
+      });
     }
-  }
+  };
 
-  // Get sidebar style based on window width
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
       return { ...styles.sidebar, ...styles.sidebarMd }
@@ -1155,7 +1200,6 @@ const loadHistoryVersion = (historyItem) => {
     return styles.sidebar
   }
 
-  // Get chat modal style based on window width
   const getChatModalStyle = () => {
     if (windowWidth >= 768) {
       return { ...styles.chatModal, ...styles.chatModalMd }
@@ -1163,7 +1207,6 @@ const loadHistoryVersion = (historyItem) => {
     return styles.chatModal
   }
 
-  // SVG Icons as React components for better integration
   const ArrowLeftIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" style={styles.backIcon} viewBox="0 0 20 20" fill="currentColor">
       <path
@@ -1216,7 +1259,7 @@ const loadHistoryVersion = (historyItem) => {
               style={hoveredItem === "logout-btn" ? { ...styles.navLink, ...styles.navLinkHover } : styles.navLink}
               onClick={async () => {
                 try {
-                  await axios.post("/logout")
+                    await api.post("/logout")
                   navigate("/signin")
                 } catch (error) {
                   console.error("Logout failed:", error)

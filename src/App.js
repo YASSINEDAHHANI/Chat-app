@@ -8,11 +8,7 @@ import Generate from './pages/Generate';
 import AdminPage from './pages/AdminPage'; // Import the new AdminPage component
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute'; // We'll create this component next
-import axios from 'axios';
 
-// Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:5000';
-axios.defaults.withCredentials = true;
 
 function App() {
   return (

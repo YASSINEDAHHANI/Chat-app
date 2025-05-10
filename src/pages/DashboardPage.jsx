@@ -1,12 +1,6 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import axios from "axios"
+import api from "../api"
 
-// Set axios defaults
-axios.defaults.withCredentials = true
-
-// Enhanced styles object with improved visual design
 const styles = {
   // Layout
   container: {
@@ -473,7 +467,6 @@ const styles = {
   },
 }
 
-// SVG Icons as React components for better integration
 const PlusCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={styles.buttonIcon}>
     <path
@@ -570,11 +563,10 @@ function Dashboard({ user }) {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Check if the user is an admin
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const response = await axios.get("/check_session")
+        const response = await api.get("/check_session")
         setIsAdmin(response.data.is_admin)
       } catch (error) {
         console.error("Failed to check admin status:", error)
@@ -584,7 +576,6 @@ function Dashboard({ user }) {
     checkAdminStatus()
   }, [])
 
-  // Fetch projects when component mounts
   useEffect(() => {
     fetchProjects()
   }, [])
@@ -607,9 +598,9 @@ function Dashboard({ user }) {
     }
   }, [])
 
-  const fetchProjects = async () => {
+const fetchProjects = async () => {
     try {
-      const response = await axios.get("/projects")
+      const response = await api.get("/projects")
       console.log("Fetched projects:", response.data)
       setProjects(response.data.projects || [])
     } catch (error) {
@@ -617,123 +608,123 @@ function Dashboard({ user }) {
     }
   }
 
-  const handleCreateProject = async () => {
-    if (step < 3) {
-      setStep(step + 1)
+const handleCreateProject = async () => {
+  if (step < 3) {
+    setStep(step + 1)
+    return
+  }
+
+  try {
+    // Create the project
+    const projectData = {
+      name: newProjectName,
+      context: projectContext,
+    }
+
+    console.log("Creating project with data:", projectData)
+
+    const response = await api.post("/projects", projectData)
+    console.log("Project created successfully:", response.data)
+    const newProject = response.data.project
+
+    // If API key is provided, save it for this project
+    if (apiKey) {
+      try {
+        await api.post("/api_keys", {
+          api_key: apiKey,
+          project_id: newProject.id,
+        })
+        console.log("API key saved successfully")
+      } catch (apiKeyError) {
+        console.error("Failed to save API key:", apiKeyError)
+        // Continue anyway
+      }
+    }
+
+    // Add collaborators if any
+    if (collaborators.length > 0) {
+      console.log(`Adding ${collaborators.length} collaborators to project ${newProject.id}`)
+
+      // Process collaborators sequentially
+      for (const collaboratorEmail of collaborators) {
+        try {
+          console.log(`Adding collaborator with email: ${collaboratorEmail}`)
+
+          // Send the email as the username parameter since that's what the backend expects
+          const collaboratorResponse = await api.post(`/projects/${newProject.id}/collaborators`, {
+            username: collaboratorEmail, // Send the email as username
+          })
+
+          console.log(`Collaborator added:`, collaboratorResponse.data)
+        } catch (error) {
+          console.error(
+            `Failed to add collaborator ${collaboratorEmail}:`,
+            error.response?.data?.error || error.message,
+          )
+          // Continue with other collaborators even if one fails
+        }
+      }
+    }
+
+    // Refresh project list
+    await fetchProjects()
+
+    // Reset form fields
+    setNewProjectName("")
+    setProjectContext("")
+    setAiModel("Claude")
+    setApiKey("")
+    setProjectLanguage("french")
+    setCollaborators([])
+    setNewCollaborator("")
+    setStep(1)
+    setIsDialogOpen(false)
+
+    // Navigate to the new project
+    if (newProject && newProject.id) {
+      console.log("Navigating to project:", newProject.id)
+      navigate(`/project/${newProject.id}`)
+    } else {
+      console.error("Project ID not available for navigation")
+    }
+  } catch (error) {
+    console.error("Error creating project:", error)
+    alert("Failed to create project. Please try again. " + (error.response?.data?.error || error.message || ""))
+  }
+}
+
+const handleFileUpload = async (e) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0]
+
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert(`Le fichier est trop volumineux. La taille maximale est de 10MB.`)
       return
     }
 
+    setIsUploading(true)
+
     try {
-      // Create the project
-      const projectData = {
-        name: newProjectName,
-        context: projectContext,
-      }
+      const formData = new FormData()
+      formData.append("file", file)
 
-      console.log("Creating project with data:", projectData)
+      const response = await api.post("/extract_text", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
 
-      const response = await axios.post("/projects", projectData)
-      console.log("Project created successfully:", response.data)
-      const newProject = response.data.project
-
-      // If API key is provided, save it for this project
-      if (apiKey) {
-        try {
-          await axios.post("/api_keys", {
-            api_key: apiKey,
-            project_id: newProject.id,
-          })
-          console.log("API key saved successfully")
-        } catch (apiKeyError) {
-          console.error("Failed to save API key:", apiKeyError)
-          // Continue anyway
-        }
-      }
-
-      // Add collaborators if any
-      if (collaborators.length > 0) {
-        console.log(`Adding ${collaborators.length} collaborators to project ${newProject.id}`)
-
-        // Process collaborators sequentially
-        for (const collaboratorEmail of collaborators) {
-          try {
-            console.log(`Adding collaborator with email: ${collaboratorEmail}`)
-
-            // Send the email as the username parameter since that's what the backend expects
-            const collaboratorResponse = await axios.post(`/projects/${newProject.id}/collaborators`, {
-              username: collaboratorEmail, // Send the email as username
-            })
-
-            console.log(`Collaborator added:`, collaboratorResponse.data)
-          } catch (error) {
-            console.error(
-              `Failed to add collaborator ${collaboratorEmail}:`,
-              error.response?.data?.error || error.message,
-            )
-            // Continue with other collaborators even if one fails
-          }
-        }
-      }
-
-      // Refresh project list
-      await fetchProjects()
-
-      // Reset form fields
-      setNewProjectName("")
-      setProjectContext("")
-      setAiModel("Claude")
-      setApiKey("")
-      setProjectLanguage("french")
-      setCollaborators([])
-      setNewCollaborator("")
-      setStep(1)
-      setIsDialogOpen(false)
-
-      // Navigate to the new project
-      if (newProject && newProject.id) {
-        console.log("Navigating to project:", newProject.id)
-        navigate(`/project/${newProject.id}`)
-      } else {
-        console.error("Project ID not available for navigation")
-      }
+      setProjectContext(response.data.text)
     } catch (error) {
-      console.error("Error creating project:", error)
-      alert("Failed to create project. Please try again. " + (error.response?.data?.error || error.message || ""))
+      console.error("Error uploading file:", error)
+      const errorMessage = error.response?.data?.error || "Échec de l'extraction du texte. Veuillez réessayer."
+      alert(errorMessage)
+    } finally {
+      setIsUploading(false)
     }
   }
-
-  const handleFileUpload = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-
-      const maxSize = 10 * 1024 * 1024
-      if (file.size > maxSize) {
-        alert(`Le fichier est trop volumineux. La taille maximale est de 10MB.`)
-        return
-      }
-
-      setIsUploading(true)
-
-      try {
-        const formData = new FormData()
-        formData.append("file", file)
-
-        const response = await axios.post("/extract_text", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-
-        setProjectContext(response.data.text)
-      } catch (error) {
-        console.error("Error uploading file:", error)
-        const errorMessage = error.response?.data?.error || "Échec de l'extraction du texte. Veuillez réessayer."
-        alert(errorMessage)
-      } finally {
-        setIsUploading(false)
-      }
-    }
-  }
+}
 
   const addCollaborator = () => {
     if (newCollaborator && !collaborators.includes(newCollaborator)) {
@@ -754,14 +745,14 @@ function Dashboard({ user }) {
     setCollaborators(collaborators.filter((c) => c !== email))
   }
 
-  const handleLogout = async () => {
-    try {
-      await axios.post("/logout")
-      window.location.href = "/signin"
-    } catch (error) {
-      console.error("Logout failed:", error)
-    }
+const handleLogout = async () => {
+  try {
+    await api.post("/logout")
+    window.location.href = "/signin"
+  } catch (error) {
+    console.error("Logout failed:", error)
   }
+}
 
   const renderStepContent = () => {
     switch (step) {

@@ -1,10 +1,6 @@
-
 import { useEffect, useState } from "react"
-import axios from "axios"
+import api from "../api"
 import { useParams } from 'react-router-dom';
-
-
-axios.defaults.withCredentials = true
 
 const styles = {
   // Layout
@@ -145,7 +141,7 @@ const { id } = useParams();
     // Optionally fetch project data here if needed
     const fetchProject = async () => {
       try {
-        await axios.get(`/projects/${id}`)
+        await api.get(`/projects/${id}`)
         // After confirming the project exists, redirect to requirements
         navigate(`/project/${id}/requirements`)
       } catch (error) {
@@ -228,7 +224,7 @@ const { id } = useParams();
               style={hoveredElement === "logout-btn" ? { ...styles.navLink, ...styles.navLinkHover } : styles.navLink}
               onClick={async () => {
                 try {
-                  await axios.post("/logout")
+                  await api.post("/logout")
                   window.location.href = "/signin"
                 } catch (error) {
                   console.error("Logout failed:", error)

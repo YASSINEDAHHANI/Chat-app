@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import api from '../api';
 import {
   Box,
   Button,
@@ -17,7 +18,7 @@ import {
 import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
 import { useNavigate } from 'react-router-dom';
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = '/api';
 axios.defaults.withCredentials = true;
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -72,11 +73,10 @@ const handleSubmit = async (event) => {
 
   try {
     setIsLoading(true);
-    const response = await axios.post('http://localhost:5000/login', {
+    // Use api instead of axios
+    const response = await api.post('/login', {
       username: email,
       password: password,
-    }, {
-      withCredentials: true // Important for session cookies
     });
 
     if (response.data.message === 'Login successful') {
