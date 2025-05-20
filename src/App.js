@@ -52,14 +52,14 @@ function App() {
           } 
         />
         
-        <Route 
-          path="/admin" 
-          element={
-            <AdminRoute>
-              <AdminPage />
-            </AdminRoute>
-          } 
-        />
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+        } 
+      />
         
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />

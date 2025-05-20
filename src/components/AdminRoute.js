@@ -1,34 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
-import axios from 'axios';
+import api from "../api";
 
-
+/**
+ * AdminRoute component - Protects routes that require admin privileges
+ * Checks if the user is both authenticated and has admin role
+ */
 const AdminRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAdminStatus = async () => {
       try {
-        const response = await axios.get('/check_session', {
-          withCredentials: true
-        });
+        const response = await api.get('/check_session');
         
-        setIsAuthenticated(response.data.logged_in);
-        setIsAdmin(response.data.role === 'admin');
+        // Check both authentication and admin role
+        const isUserAdmin = response.data.logged_in && response.data.is_admin;
+        setIsAdmin(isUserAdmin);
       } catch (error) {
-        console.error('Authentication check failed:', error);
-        setIsAuthenticated(false);
+        console.error('Authentication/admin check failed:', error);
         setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    checkAuth();
+    checkAdminStatus();
   }, []);
 
-  // Show loading while checking authentication
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
@@ -36,18 +38,8 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  // If user is not authenticated, redirect to login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // If user is authenticated but not an admin, redirect to dashboard
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // If user is authenticated and is an admin, render the children
-  return children;
+  // Redirect to login if not authenticated or not admin
+  return isAdmin ? children : <Navigate to="/login" replace />;
 };
 
 export default AdminRoute;

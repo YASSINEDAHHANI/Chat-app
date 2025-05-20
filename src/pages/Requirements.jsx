@@ -1,29 +1,21 @@
+import { useParams, useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import api from "../api"
 
-import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from "react";
-import api from "../api";
 
-const requirementCategories = [
-  { value: "functionality", label: "Fonctionnalité" },
-  { value: "ui", label: "Interface utilisateur" },
-  { value: "security", label: "Sécurité" },
-  { value: "performance", label: "Performance" },
-  { value: "usability", label: "Utilisabilité" },
-  { value: "compatibility", label: "Compatibilité" },
-  { value: "accessibility", label: "Accessibilité" },
-];
 const styles = {
+  // Layout
   container: {
     display: "flex",
     minHeight: "100vh",
     flexDirection: "column",
-    backgroundColor: "#f9fafb",
-    fontFamily: "system-ui, -apple-system, sans-serif",
+    backgroundColor: "#ffffff", // Light background
+    fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+    color: "#1f2937", // Dark text for light mode
   },
   header: {
-    borderBottom: "1px solid #e5e7eb",
-    backgroundColor: "white",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+    backgroundColor: "#ffffff",
   },
   headerContainer: {
     maxWidth: "1200px",
@@ -37,7 +29,7 @@ const styles = {
   backButton: {
     fontSize: "0.875rem",
     fontWeight: "500",
-    color: "#4b5563",
+    color: "#1f2937",
     display: "flex",
     alignItems: "center",
     backgroundColor: "transparent",
@@ -48,8 +40,7 @@ const styles = {
     transition: "all 0.2s",
   },
   backButtonHover: {
-    backgroundColor: "#f3f4f6",
-    color: "#111827",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   backIcon: {
     height: "1rem",
@@ -59,7 +50,7 @@ const styles = {
   pageTitle: {
     fontSize: "1.25rem",
     fontWeight: "700",
-    color: "#111827",
+    color: "#1f2937",
     margin: 0,
   },
   headerActions: {
@@ -102,23 +93,22 @@ const styles = {
     padding: "0.625rem 2.5rem 0.625rem 0.75rem",
     fontSize: "0.875rem",
     lineHeight: "1.25rem",
-    color: "#111827",
-    backgroundColor: "#ffffff",
+    color: "#1f2937",
+    backgroundColor: "#f3f4f6", // Light gray background
     backgroundImage:
       'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 strokeLinecap=%27round%27 strokeLinejoin=%27round%27 strokeWidth=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")',
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 0.5rem center",
     backgroundSize: "1.5em 1.5em",
-    border: "1px solid #d1d5db",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
     borderRadius: "0.375rem",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
     appearance: "none",
     transition: "border-color 0.2s, box-shadow 0.2s",
   },
   selectFocus: {
     outline: "none",
-    borderColor: "#6366f1",
-    boxShadow: "0 0 0 1px rgba(99, 102, 241, 0.2)",
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 1px #3b82f6",
   },
   selectSmall: {
     width: "auto",
@@ -136,15 +126,13 @@ const styles = {
     border: "none",
     cursor: "pointer",
     transition: "all 0.2s",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
   },
   primaryButton: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: "#3b82f6",
     color: "white",
   },
   primaryButtonHover: {
-    backgroundColor: "#4338ca",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+    backgroundColor: "#2563eb",
   },
   dangerButton: {
     backgroundColor: "#dc2626",
@@ -152,16 +140,15 @@ const styles = {
   },
   dangerButtonHover: {
     backgroundColor: "#b91c1c",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
   },
   outlineButton: {
-    backgroundColor: "white",
+    backgroundColor: "transparent",
     color: "#4b5563",
-    border: "1px solid #d1d5db",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
   },
   outlineButtonHover: {
-    backgroundColor: "#f9fafb",
-    borderColor: "#9ca3af",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderColor: "rgba(0, 0, 0, 0.2)",
   },
   buttonIcon: {
     marginRight: "0.5rem",
@@ -186,8 +173,8 @@ const styles = {
     transition: "all 0.2s",
   },
   iconButtonHover: {
-    color: "#111827",
-    backgroundColor: "#f3f4f6",
+    color: "#1f2937",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   // Requirement cards
   requirementContainer: {
@@ -196,29 +183,30 @@ const styles = {
     gap: "1.5rem",
   },
   requirementCard: {
-    backgroundColor: "white",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+    backgroundColor: "#ffffff", // White background
     overflow: "hidden",
     borderRadius: "0.5rem",
-    border: "1px solid #e5e7eb",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
     transition: "all 0.2s",
+    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
   },
   requirementCardHover: {
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    borderColor: "rgba(0, 0, 0, 0.2)",
     transform: "translateY(-2px)",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
   },
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     padding: "1.25rem",
-    borderBottom: "1px solid #f3f4f6",
+    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
   },
   cardTitle: {
     fontSize: "1.125rem",
     lineHeight: "1.5rem",
     fontWeight: "600",
-    color: "#111827",
+    color: "#1f2937",
     margin: 0,
   },
   cardActions: {
@@ -230,7 +218,7 @@ const styles = {
     padding: "1.25rem",
   },
   cardDescription: {
-    color: "#4b5563",
+    color: "#6b7280",
     marginBottom: "1.25rem",
     fontSize: "0.875rem",
     lineHeight: "1.5rem",
@@ -249,36 +237,36 @@ const styles = {
     fontWeight: "500",
   },
   categoryBadge: {
-    backgroundColor: "#dbeafe",
-    color: "#1e40af",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    color: "#3b82f6",
   },
   priorityBadgeHigh: {
-    backgroundColor: "#fee2e2",
-    color: "#991b1b",
+    backgroundColor: "rgba(220, 38, 38, 0.1)",
+    color: "#dc2626",
   },
   priorityBadgeMedium: {
-    backgroundColor: "#fef3c7",
-    color: "#92400e",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    color: "#f59e0b",
   },
   priorityBadgeLow: {
-    backgroundColor: "#d1fae5",
-    color: "#065f46",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    color: "#10b981",
   },
   statusBadgeApproved: {
-    backgroundColor: "#d1fae5",
-    color: "#065f46",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    color: "#10b981",
   },
   statusBadgeReview: {
-    backgroundColor: "#dbeafe",
-    color: "#1e40af",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    color: "#3b82f6",
   },
   statusBadgeDraft: {
-    backgroundColor: "#f3f4f6",
-    color: "#4b5563",
+    backgroundColor: "rgba(156, 163, 175, 0.1)",
+    color: "#6b7280",
   },
   cardFooter: {
-    backgroundColor: "#f9fafb",
-    borderTop: "1px solid #e5e7eb",
+    backgroundColor: "#f9fafb", // Light gray background
+    borderTop: "1px solid rgba(0, 0, 0, 0.05)",
     padding: "1.25rem",
     display: "flex",
     justifyContent: "flex-end",
@@ -287,24 +275,22 @@ const styles = {
   emptyState: {
     textAlign: "center",
     padding: "4rem 2rem",
-    backgroundColor: "white",
+    backgroundColor: "#f9fafb", // Light gray background
     borderRadius: "0.5rem",
-    border: "2px dashed #e5e7eb",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
+    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
   },
   emptyStateIcon: {
     margin: "0 auto",
     height: "4rem",
     width: "4rem",
     color: "#9ca3af",
-    backgroundColor: "#f3f4f6",
-    padding: "1rem",
-    borderRadius: "50%",
     marginBottom: "1rem",
   },
   emptyStateTitle: {
     fontSize: "1.25rem",
     fontWeight: "600",
-    color: "#111827",
+    color: "#1f2937",
     marginTop: "1rem",
     marginBottom: "0.5rem",
   },
@@ -324,6 +310,7 @@ const styles = {
     position: "fixed",
     inset: "0",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backdropFilter: "blur(4px)",
     transition: "opacity 0.2s",
   },
   modalContainer: {
@@ -335,20 +322,21 @@ const styles = {
   },
   modalContent: {
     position: "relative",
-    backgroundColor: "white",
+    backgroundColor: "#ffffff", // White background
     borderRadius: "0.75rem",
-    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
     overflow: "hidden",
     width: "100%",
     maxWidth: "32rem",
     padding: "1.5rem",
     maxHeight: "90vh",
     overflowY: "auto",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
   },
   modalTitle: {
     fontSize: "1.25rem",
     fontWeight: "600",
-    color: "#111827",
+    color: "#1f2937",
     marginTop: 0,
     marginBottom: "0.5rem",
   },
@@ -380,48 +368,50 @@ const styles = {
     display: "block",
     fontSize: "0.875rem",
     fontWeight: "500",
-    color: "#374151",
+    color: "#4b5563",
     marginBottom: "0.5rem",
   },
   input: {
     width: "100%",
     padding: "0.625rem 0.75rem",
     borderRadius: "0.375rem",
-    border: "1px solid #d1d5db",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
     fontSize: "0.875rem",
     transition: "border-color 0.2s, box-shadow 0.2s",
+    backgroundColor: "#ffffff",
+    color: "#1f2937",
   },
   inputFocus: {
     outline: "none",
-    borderColor: "#6366f1",
-    boxShadow: "0 0 0 1px rgba(99, 102, 241, 0.2)",
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 1px #3b82f6",
   },
   textarea: {
     width: "100%",
     padding: "0.625rem 0.75rem",
     borderRadius: "0.375rem",
-    border: "1px solid #d1d5db",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
     fontSize: "0.875rem",
     resize: "vertical",
     minHeight: "6rem",
     transition: "border-color 0.2s, box-shadow 0.2s",
+    backgroundColor: "#ffffff",
+    color: "#1f2937",
   },
   textareaFocus: {
     outline: "none",
-    borderColor: "#6366f1",
-    boxShadow: "0 0 0 1px rgba(99, 102, 241, 0.2)",
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 1px #3b82f6",
   },
   modalDivider: {
-    borderTop: "1px solid #e5e7eb",
+    borderTop: "1px solid rgba(0, 0, 0, 0.05)",
     margin: "1rem 0",
     paddingTop: "1rem",
   },
   modalItemPreview: {
     fontSize: "0.875rem",
     fontWeight: "500",
-    color: "#111827",
+    color: "#1f2937",
   },
   modalItemDescription: {
     fontSize: "0.875rem",
@@ -435,16 +425,15 @@ const styles = {
   searchContainer: {
     display: "flex",
     alignItems: "center",
-    border: "1px solid #d1d5db",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
     borderRadius: "0.375rem",
     overflow: "hidden",
-    backgroundColor: "white",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    backgroundColor: "#f3f4f6", // Light gray background
     transition: "border-color 0.2s, box-shadow 0.2s",
   },
   searchContainerFocus: {
-    borderColor: "#6366f1",
-    boxShadow: "0 0 0 1px rgba(99, 102, 241, 0.2)",
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 1px #3b82f6",
   },
   searchIcon: {
     height: "1rem",
@@ -458,6 +447,8 @@ const styles = {
     outline: "none",
     width: "12rem",
     fontSize: "0.875rem",
+    backgroundColor: "transparent",
+    color: "#1f2937",
   },
   searchClearButton: {
     background: "none",
@@ -468,7 +459,7 @@ const styles = {
     transition: "color 0.2s",
   },
   searchClearButtonHover: {
-    color: "#111827",
+    color: "#1f2937",
   },
   checkboxContainer: {
     display: "flex",
@@ -480,17 +471,28 @@ const styles = {
     width: "1rem",
     height: "1rem",
     borderRadius: "0.25rem",
-    accentColor: "#4f46e5",
+    accentColor: "#3b82f6",
   },
   checkboxLabel: {
     fontSize: "0.875rem",
-    color: "#374151",
+    color: "#4b5563",
   },
 }
 
+const requirementCategories = [
+  { value: "functionality", label: "Fonctionnalité" },
+  { value: "ui", label: "Interface utilisateur" },
+  { value: "security", label: "Sécurité" },
+  { value: "performance", label: "Performance" },
+  { value: "usability", label: "Utilisabilité" },
+  { value: "compatibility", label: "Compatibilité" },
+  { value: "accessibility", label: "Accessibilité" },
+]
+
+
 function Requirements() {
-  const navigate = useNavigate();
-  const { id: projectId } = useParams();
+  const navigate = useNavigate()
+  const { id: projectId } = useParams()
 
   const [project, setProject] = useState(null)
   const [requirements, setRequirements] = useState([])
@@ -503,6 +505,7 @@ function Requirements() {
   const [searchQuery, setSearchQuery] = useState("")
   const [hoveredItem, setHoveredItem] = useState(null)
   const [focusedInput, setFocusedInput] = useState(null)
+  const [filterStatus, setFilterStatus] = useState("all")
 
   // New requirement form state
   const [newRequirement, setNewRequirement] = useState({
@@ -511,6 +514,37 @@ function Requirements() {
     status: "draft",
     category: "functionality",
   })
+
+  useEffect(() => {
+    // Add custom styling to ensure no dark borders
+    const styleTag = document.createElement("style")
+    styleTag.type = "text/css"
+    styleTag.innerHTML = `
+    body {
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    
+    html {
+      background-color: #ffffff;
+    }
+    
+    /* Remove any potential dark borders */
+    #root, div[data-reactroot] {
+      background-color: #ffffff;
+      min-height: 100vh;
+    }
+  `
+    document.head.appendChild(styleTag)
+
+    return () => {
+      if (document.head.contains(styleTag)) {
+        document.head.removeChild(styleTag)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -592,17 +626,147 @@ function Requirements() {
     }
   }
 
-  const handleDownloadRequirements = (format) => {
-    // In a real app, this would generate and download a file
-    alert(`Téléchargement des exigences au format ${format.toUpperCase()}`)
+
+// Fixed handleDownloadRequirements using api.js module
+
+const handleDownloadRequirements = (format) => {
+  if (filteredRequirements.length === 0) {
+    alert(`Aucune exigence à télécharger. Veuillez modifier vos filtres.`);
+    return;
   }
 
-  // Apply all filters to requirements
-  const filteredRequirements = requirements
-    .filter((req) => filterCategory === "all" || req.category === filterCategory)
-    .filter((req) => filterPriority === "all" || req.priority === filterPriority)
-    .filter((req) => searchQuery === "" || req.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  const loadingMessage = `Préparation du téléchargement en format ${format.toUpperCase()}...`;
+  console.log(loadingMessage);
+  
+  if (format === 'xlsx') {
+    try {
+      const formatDate = new Date().toLocaleDateString().replace(/\//g, '-');
+      const fileName = `exigences_${project?.name?.replace(/\s+/g, '_') || 'projet'}_${formatDate}`;
+      
+      let csvContent = "Titre,Description,Catégorie,Priorité,Statut\n";
+      
+      filteredRequirements.forEach(req => {
+        // Properly escape text for CSV
+        const escapeForCSV = (text) => {
+          if (text === null || text === undefined) return '';
+          return `"${String(text).replace(/"/g, '""')}"`;
+        };
+        
+        const row = [
+          escapeForCSV(req.title),
+          escapeForCSV(req.description),
+          escapeForCSV(getCategoryLabel(req.category)),
+          escapeForCSV(getPriorityLabel(req.priority)),
+          escapeForCSV(getStatusLabel(req.status))
+        ].join(',');
+        
+        csvContent += row + '\n';
+      });
+      
+      // Create a download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${fileName}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error("Error creating CSV file:", error);
+      alert("Une erreur est survenue lors de la création du fichier Excel.");
+    }
+  } else {
+    try {
+      const requestData = {
+        requirements: filteredRequirements,
+        project_name: project?.name || 'Projet'
+      };
+      
+      const formatDate = new Date().toLocaleDateString().replace(/\//g, '-');
+      const fileName = `exigences_${project?.name?.replace(/\s+/g, '_') || 'projet'}_${formatDate}.${format}`;
+      
+      // Use api.js with specific configuration for binary data
+      api({
+        method: 'post',
+        url: `/download_requirements/${format}`,
+        data: requestData,
+        responseType: 'blob', // Important: tells axios to handle as binary
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => {
+        // Create blob from response data
+        const contentType = format === 'pdf' 
+          ? 'application/pdf' 
+          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          
+        const blob = new Blob([response.data], { type: contentType });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 100);
+      })
+      .catch(error => {
+        console.error(`Error downloading ${format.toUpperCase()} file:`, error);
+        
 
+        if (error.request && error.request.response instanceof Blob && error.request.response.size > 0) {
+          console.log("Download may have succeeded despite the error");
+          try {
+            const contentType = format === 'pdf' 
+              ? 'application/pdf' 
+              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+              
+            const blob = new Blob([error.request.response], { type: contentType });
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            setTimeout(() => {
+              URL.revokeObjectURL(url);
+            }, 100);
+          } catch (e) {
+            console.log(`Une erreur est survenue lors de la création du fichier ${format.toUpperCase()}.`);
+          }
+        } else {
+          console.log(`Une erreur est survenue lors de la création du fichier ${format.toUpperCase()}.`);
+        }
+      });
+    } catch (error) {
+      console.error(`Error in ${format.toUpperCase()} download:`, error);
+    }
+  }
+};
+ const filteredRequirements = requirements
+  .filter((req) => filterCategory === "all" || req.category === filterCategory)
+  .filter((req) => filterPriority === "all" || req.priority === filterPriority)
+  .filter((req) => filterStatus === "all" || req.status === filterStatus)
+  .filter((req) => searchQuery === "" || req.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  
   const getCategoryLabel = (categoryValue) => {
     const category = requirementCategories.find((cat) => cat.value === categoryValue)
     return category ? category.label : categoryValue
@@ -660,7 +824,6 @@ function Requirements() {
     }
   }
 
-  // SVG Icons as React components for better integration
   const PlusIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" style={styles.buttonIcon} viewBox="0 0 20 20" fill="currentColor">
       <path
@@ -763,48 +926,54 @@ function Requirements() {
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerContainer}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button 
-              style={hoveredItem === 'back-btn' 
-                ? { ...styles.backButton, ...styles.backButtonHover }
-                : styles.backButton
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <button
+              style={
+                hoveredItem === "back-btn" ? { ...styles.backButton, ...styles.backButtonHover } : styles.backButton
               }
-              onClick={() => navigate('/dashboard')}
-              onMouseEnter={() => setHoveredItem('back-btn')}
+              onClick={() => navigate("/dashboard")}
+              onMouseEnter={() => setHoveredItem("back-btn")}
               onMouseLeave={() => setHoveredItem(null)}
             >
               <ArrowLeftIcon />
               Retour au tableau de bord
             </button>
-            <h1 style={styles.pageTitle}>
-              {project ? `Exigences: ${project.name}` : 'Chargement...'}
-            </h1>
+            <h1 style={styles.pageTitle}>{project ? `Exigences: ${project.name}` : "Chargement..."}</h1>
           </div>
           <div style={styles.headerActions}>
-            <select 
+            {/* Updated select dropdown with filtered requirement count */}
+            <select
               style={{
                 ...styles.select,
                 ...styles.selectSmall,
-                ...(focusedInput === 'download' ? styles.selectFocus : {})
+                ...(focusedInput === "download" ? styles.selectFocus : {}),
               }}
-              onChange={(e) => handleDownloadRequirements(e.target.value)}
-              defaultValue=""
-              onFocus={() => setFocusedInput('download')}
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleDownloadRequirements(e.target.value);
+                  e.target.value = ""; // Reset after download
+                }
+              }}
+              value=""
+              onFocus={() => setFocusedInput("download")}
               onBlur={() => setFocusedInput(null)}
             >
-              <option value="" disabled>Télécharger...</option>
-              <option value="pdf">Télécharger en PDF</option>
-              <option value="docx">Télécharger en DOCX</option>
-              <option value="xlsx">Télécharger en Excel</option>
+              <option value="" disabled>
+                Télécharger...
+              </option>
+              <option value="pdf">Télécharger en PDF ({filteredRequirements.length})</option>
+              <option value="docx">Télécharger en DOCX ({filteredRequirements.length})</option>
+              <option value="xlsx">Télécharger en Excel ({filteredRequirements.length})</option>
             </select>
 
             <button
-              style={hoveredItem === 'add-btn' 
-                ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                : { ...styles.button, ...styles.primaryButton }
+              style={
+                hoveredItem === "add-btn"
+                  ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                  : { ...styles.button, ...styles.primaryButton }
               }
               onClick={() => setIsAddDialogOpen(true)}
-              onMouseEnter={() => setHoveredItem('add-btn')}
+              onMouseEnter={() => setHoveredItem("add-btn")}
               onMouseLeave={() => setHoveredItem(null)}
             >
               <PlusIcon />
@@ -818,16 +987,16 @@ function Requirements() {
         <div style={styles.mainContainer}>
           <div style={styles.filterBar}>
             <div style={styles.filterLeftSection}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
                 <select
                   style={{
                     ...styles.select,
                     ...styles.selectSmall,
-                    ...(focusedInput === 'category' ? styles.selectFocus : {})
+                    ...(focusedInput === "category" ? styles.selectFocus : {}),
                   }}
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  onFocus={() => setFocusedInput('category')}
+                  onFocus={() => setFocusedInput("category")}
                   onBlur={() => setFocusedInput(null)}
                 >
                   <option value="all">Toutes les catégories</option>
@@ -837,18 +1006,16 @@ function Requirements() {
                     </option>
                   ))}
                 </select>
-                
+
                 <select
                   style={{
                     ...styles.select,
                     ...styles.selectSmall,
-                    ...(focusedInput === 'priority' ? styles.selectFocus : {})
+                    ...(focusedInput === "priority" ? styles.selectFocus : {}),
                   }}
-
-
                   value={filterPriority}
                   onChange={(e) => setFilterPriority(e.target.value)}
-                  onFocus={() => setFocusedInput('priority')}
+                  onFocus={() => setFocusedInput("priority")}
                   onBlur={() => setFocusedInput(null)}
                 >
                   <option value="all">Toutes les priorités</option>
@@ -856,11 +1023,28 @@ function Requirements() {
                   <option value="medium">Moyenne</option>
                   <option value="low">Basse</option>
                 </select>
-                
-                <div style={{
-                  ...styles.searchContainer,
-                  ...(focusedInput === 'search' ? styles.searchContainerFocus : {})
-                }}>
+                 <select
+                  style={{
+                    ...styles.select,
+                    ...styles.selectSmall,
+                    ...(focusedInput === "status" ? styles.selectFocus : {}),
+                  }}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onFocus={() => setFocusedInput("status")}
+                  onBlur={() => setFocusedInput(null)}
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="approved">Approuvé</option>
+                  <option value="in-review">En revue</option>
+                  <option value="draft">Brouillon</option>
+                </select>   
+                <div
+                  style={{
+                    ...styles.searchContainer,
+                    ...(focusedInput === "search" ? styles.searchContainerFocus : {}),
+                  }}
+                >
                   <SearchIcon />
                   <input
                     type="text"
@@ -868,17 +1052,18 @@ function Requirements() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={styles.searchInput}
-                    onFocus={() => setFocusedInput('search')}
+                    onFocus={() => setFocusedInput("search")}
                     onBlur={() => setFocusedInput(null)}
                   />
                   {searchQuery && (
                     <button
-                      onClick={() => setSearchQuery('')}
-                      style={hoveredItem === 'clear-search' 
-                        ? { ...styles.searchClearButton, ...styles.searchClearButtonHover }
-                        : styles.searchClearButton
+                      onClick={() => setSearchQuery("")}
+                      style={
+                        hoveredItem === "clear-search"
+                          ? { ...styles.searchClearButton, ...styles.searchClearButtonHover }
+                          : styles.searchClearButton
                       }
-                      onMouseEnter={() => setHoveredItem('clear-search')}
+                      onMouseEnter={() => setHoveredItem("clear-search")}
                       onMouseLeave={() => setHoveredItem(null)}
                     >
                       <CloseIcon />
@@ -886,18 +1071,20 @@ function Requirements() {
                   )}
                 </div>
               </div>
-              
+
               <span style={styles.filterResultCount}>
-                {filteredRequirements.length} exigence{filteredRequirements.length !== 1 ? 's' : ''} trouvée{filteredRequirements.length !== 1 ? 's' : ''}
+                {filteredRequirements.length} exigence{filteredRequirements.length !== 1 ? "s" : ""} trouvée
+                {filteredRequirements.length !== 1 ? "s" : ""}
               </span>
             </div>
             <button
-              style={hoveredItem === 'generate-btn' 
-                ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                : { ...styles.button, ...styles.primaryButton }
+              style={
+                hoveredItem === "generate-btn"
+                  ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                  : { ...styles.button, ...styles.primaryButton }
               }
               onClick={() => navigate(`/project/${projectId}/generate`)}
-              onMouseEnter={() => setHoveredItem('generate-btn')}
+              onMouseEnter={() => setHoveredItem("generate-btn")}
               onMouseLeave={() => setHoveredItem(null)}
             >
               Générer des cas de test
@@ -916,12 +1103,13 @@ function Requirements() {
                     : "Aucune exigence ne correspond à vos critères de recherche."}
                 </p>
                 <button
-                  style={hoveredItem === 'empty-add-btn' 
-                    ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                    : { ...styles.button, ...styles.primaryButton }
+                  style={
+                    hoveredItem === "empty-add-btn"
+                      ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                      : { ...styles.button, ...styles.primaryButton }
                   }
                   onClick={() => setIsAddDialogOpen(true)}
-                  onMouseEnter={() => setHoveredItem('empty-add-btn')}
+                  onMouseEnter={() => setHoveredItem("empty-add-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   <PlusIcon />
@@ -930,11 +1118,12 @@ function Requirements() {
               </div>
             ) : (
               filteredRequirements.map((requirement) => (
-                <div 
-                  key={requirement.id} 
-                  style={hoveredItem === `req-${requirement.id}` 
-                    ? { ...styles.requirementCard, ...styles.requirementCardHover }
-                    : styles.requirementCard
+                <div
+                  key={requirement.id}
+                  style={
+                    hoveredItem === `req-${requirement.id}`
+                      ? { ...styles.requirementCard, ...styles.requirementCardHover }
+                      : styles.requirementCard
                   }
                   onMouseEnter={() => setHoveredItem(`req-${requirement.id}`)}
                   onMouseLeave={() => setHoveredItem(null)}
@@ -943,13 +1132,14 @@ function Requirements() {
                     <h3 style={styles.cardTitle}>{requirement.title}</h3>
                     <div style={styles.cardActions}>
                       <button
-                        style={hoveredItem === `edit-btn-${requirement.id}` 
-                          ? { ...styles.iconButton, ...styles.iconButtonHover }
-                          : styles.iconButton
+                        style={
+                          hoveredItem === `edit-btn-${requirement.id}`
+                            ? { ...styles.iconButton, ...styles.iconButtonHover }
+                            : styles.iconButton
                         }
                         onClick={() => {
-                          setSelectedRequirement(requirement);
-                          setIsEditDialogOpen(true);
+                          setSelectedRequirement(requirement)
+                          setIsEditDialogOpen(true)
                         }}
                         onMouseEnter={() => setHoveredItem(`edit-btn-${requirement.id}`)}
                         onMouseLeave={() => setHoveredItem(`req-${requirement.id}`)}
@@ -959,13 +1149,14 @@ function Requirements() {
                         <EditIcon />
                       </button>
                       <button
-                        style={hoveredItem === `delete-btn-${requirement.id}` 
-                          ? { ...styles.iconButton, ...styles.iconButtonHover }
-                          : styles.iconButton
+                        style={
+                          hoveredItem === `delete-btn-${requirement.id}`
+                            ? { ...styles.iconButton, ...styles.iconButtonHover }
+                            : styles.iconButton
                         }
                         onClick={() => {
-                          setSelectedRequirement(requirement);
-                          setIsDeleteDialogOpen(true);
+                          setSelectedRequirement(requirement)
+                          setIsDeleteDialogOpen(true)
                         }}
                         onMouseEnter={() => setHoveredItem(`delete-btn-${requirement.id}`)}
                         onMouseLeave={() => setHoveredItem(`req-${requirement.id}`)}
@@ -984,9 +1175,9 @@ function Requirements() {
                       </span>
                       <span style={{ ...styles.badge, ...getPriorityBadgeStyle(requirement.priority) }}>
                         Priorité: {getPriorityLabel(requirement.priority)}
-                        {requirement.priority_auto_generated && 
-                          <span style={{fontSize: '0.7rem', marginLeft: '0.25rem'}}> (Auto)</span>
-                        }
+                        {requirement.priority_auto_generated && (
+                          <span style={{ fontSize: "0.7rem", marginLeft: "0.25rem" }}> (Auto)</span>
+                        )}
                       </span>
                       <span style={{ ...styles.badge, ...getStatusBadgeStyle(requirement.status) }}>
                         Statut: {getStatusLabel(requirement.status)}
@@ -995,9 +1186,10 @@ function Requirements() {
                   </div>
                   <div style={styles.cardFooter}>
                     <button
-                      style={hoveredItem === `gen-btn-${requirement.id}` 
-                        ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                        : { ...styles.button, ...styles.primaryButton }
+                      style={
+                        hoveredItem === `gen-btn-${requirement.id}`
+                          ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                          : { ...styles.button, ...styles.primaryButton }
                       }
                       onClick={() => navigate(`/project/${projectId}/generate?requirement=${requirement.id}`)}
                       onMouseEnter={() => setHoveredItem(`gen-btn-${requirement.id}`)}
@@ -1022,7 +1214,8 @@ function Requirements() {
             <div style={styles.modalContent}>
               <h3 style={styles.modalTitle}>Ajouter une nouvelle exigence</h3>
               <p style={styles.modalDescription}>
-                Créez une nouvelle exigence pour votre projet. La priorité sera déterminée automatiquement en fonction de la description.
+                Créez une nouvelle exigence pour votre projet. La priorité sera déterminée automatiquement en fonction
+                de la description.
               </p>
 
               <div style={styles.modalBody}>
@@ -1035,12 +1228,12 @@ function Requirements() {
                     type="text"
                     style={{
                       ...styles.input,
-                      ...(focusedInput === 'title' ? styles.inputFocus : {})
+                      ...(focusedInput === "title" ? styles.inputFocus : {}),
                     }}
                     placeholder="Titre de l'exigence"
                     value={newRequirement.title}
                     onChange={(e) => setNewRequirement({ ...newRequirement, title: e.target.value })}
-                    onFocus={() => setFocusedInput('title')}
+                    onFocus={() => setFocusedInput("title")}
                     onBlur={() => setFocusedInput(null)}
                   />
                 </div>
@@ -1053,16 +1246,17 @@ function Requirements() {
                     rows={4}
                     style={{
                       ...styles.textarea,
-                      ...(focusedInput === 'description' ? styles.textareaFocus : {})
+                      ...(focusedInput === "description" ? styles.textareaFocus : {}),
                     }}
                     placeholder="Description détaillée de l'exigence"
                     value={newRequirement.description}
                     onChange={(e) => setNewRequirement({ ...newRequirement, description: e.target.value })}
-                    onFocus={() => setFocusedInput('description')}
+                    onFocus={() => setFocusedInput("description")}
                     onBlur={() => setFocusedInput(null)}
                   />
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                    Utilisez des mots comme "crucial", "impératif" pour indiquer une haute priorité, ou "optionnel", "souhaitable" pour une priorité basse.
+                  <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                    Utilisez des mots comme "crucial", "impératif" pour indiquer une haute priorité, ou "optionnel",
+                    "souhaitable" pour une priorité basse.
                   </p>
                 </div>
                 <div style={styles.formGroup}>
@@ -1073,11 +1267,11 @@ function Requirements() {
                     id="category"
                     style={{
                       ...styles.select,
-                      ...(focusedInput === 'category-select' ? styles.selectFocus : {})
+                      ...(focusedInput === "category-select" ? styles.selectFocus : {}),
                     }}
                     value={newRequirement.category}
                     onChange={(e) => setNewRequirement({ ...newRequirement, category: e.target.value })}
-                    onFocus={() => setFocusedInput('category-select')}
+                    onFocus={() => setFocusedInput("category-select")}
                     onBlur={() => setFocusedInput(null)}
                   >
                     {requirementCategories.map((category) => (
@@ -1095,11 +1289,11 @@ function Requirements() {
                     id="status"
                     style={{
                       ...styles.select,
-                      ...(focusedInput === 'status-select' ? styles.selectFocus : {})
+                      ...(focusedInput === "status-select" ? styles.selectFocus : {}),
                     }}
                     value={newRequirement.status}
                     onChange={(e) => setNewRequirement({ ...newRequirement, status: e.target.value })}
-                    onFocus={() => setFocusedInput('status-select')}
+                    onFocus={() => setFocusedInput("status-select")}
                     onBlur={() => setFocusedInput(null)}
                   >
                     <option value="draft">Brouillon</option>
@@ -1112,24 +1306,26 @@ function Requirements() {
               <div style={styles.modalFooter}>
                 <button
                   type="button"
-                  style={hoveredItem === 'cancel-add-btn' 
-                    ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
-                    : { ...styles.button, ...styles.outlineButton }
+                  style={
+                    hoveredItem === "cancel-add-btn"
+                      ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
+                      : { ...styles.button, ...styles.outlineButton }
                   }
                   onClick={() => setIsAddDialogOpen(false)}
-                  onMouseEnter={() => setHoveredItem('cancel-add-btn')}
+                  onMouseEnter={() => setHoveredItem("cancel-add-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   Annuler
                 </button>
                 <button
                   type="button"
-                  style={hoveredItem === 'confirm-add-btn' 
-                    ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                    : { ...styles.button, ...styles.primaryButton }
+                  style={
+                    hoveredItem === "confirm-add-btn"
+                      ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                      : { ...styles.button, ...styles.primaryButton }
                   }
                   onClick={handleAddRequirement}
-                  onMouseEnter={() => setHoveredItem('confirm-add-btn')}
+                  onMouseEnter={() => setHoveredItem("confirm-add-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                   disabled={!newRequirement.title.trim()}
                 >
@@ -1148,9 +1344,7 @@ function Requirements() {
           <div style={styles.modalContainer}>
             <div style={styles.modalContent}>
               <h3 style={styles.modalTitle}>Modifier l'exigence</h3>
-              <p style={styles.modalDescription}>
-                Modifiez les détails de cette exigence.
-              </p>
+              <p style={styles.modalDescription}>Modifiez les détails de cette exigence.</p>
 
               <div style={styles.modalBody}>
                 <div style={styles.formGroup}>
@@ -1162,11 +1356,11 @@ function Requirements() {
                     type="text"
                     style={{
                       ...styles.input,
-                      ...(focusedInput === 'edit-title' ? styles.inputFocus : {})
+                      ...(focusedInput === "edit-title" ? styles.inputFocus : {}),
                     }}
                     value={selectedRequirement.title}
                     onChange={(e) => setSelectedRequirement({ ...selectedRequirement, title: e.target.value })}
-                    onFocus={() => setFocusedInput('edit-title')}
+                    onFocus={() => setFocusedInput("edit-title")}
                     onBlur={() => setFocusedInput(null)}
                   />
                 </div>
@@ -1179,15 +1373,16 @@ function Requirements() {
                     rows={4}
                     style={{
                       ...styles.textarea,
-                      ...(focusedInput === 'edit-description' ? styles.textareaFocus : {})
+                      ...(focusedInput === "edit-description" ? styles.textareaFocus : {}),
                     }}
                     value={selectedRequirement.description}
                     onChange={(e) => setSelectedRequirement({ ...selectedRequirement, description: e.target.value })}
-                    onFocus={() => setFocusedInput('edit-description')}
+                    onFocus={() => setFocusedInput("edit-description")}
                     onBlur={() => setFocusedInput(null)}
                   />
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                    Utilisez des mots comme "crucial", "impératif" pour indiquer une haute priorité, ou "optionnel", "souhaitable" pour une priorité basse.
+                  <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                    Utilisez des mots comme "crucial", "impératif" pour indiquer une haute priorité, ou "optionnel",
+                    "souhaitable" pour une priorité basse.
                   </p>
                 </div>
                 <div style={styles.formGroup}>
@@ -1198,11 +1393,11 @@ function Requirements() {
                     id="edit-category"
                     style={{
                       ...styles.select,
-                      ...(focusedInput === 'edit-category' ? styles.selectFocus : {})
+                      ...(focusedInput === "edit-category" ? styles.selectFocus : {}),
                     }}
                     value={selectedRequirement.category}
                     onChange={(e) => setSelectedRequirement({ ...selectedRequirement, category: e.target.value })}
-                    onFocus={() => setFocusedInput('edit-category')}
+                    onFocus={() => setFocusedInput("edit-category")}
                     onBlur={() => setFocusedInput(null)}
                   >
                     {requirementCategories.map((category) => (
@@ -1216,59 +1411,63 @@ function Requirements() {
                   <label style={styles.formLabel}>
                     Priorité actuelle: {getPriorityLabel(selectedRequirement.priority)}
                   </label>
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '0.5rem', 
-                    alignItems: 'center',
-                    backgroundColor: '#f9fafb',
-                    padding: '0.75rem',
-                    borderRadius: '0.375rem',
-                    marginTop: '0.25rem'
-                  }}>
-                    <span style={{ 
-                      ...styles.badge, 
-                      ...getPriorityBadgeStyle(selectedRequirement.priority),
-                      fontSize: '0.875rem',
-                      padding: '0.25rem 0.75rem'
-                    }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      alignItems: "center",
+                      backgroundColor: "rgba(0, 0, 0, 0.03)",
+                      padding: "0.75rem",
+                      borderRadius: "0.375rem",
+                      marginTop: "0.25rem",
+                    }}
+                  >
+                    <span
+                      style={{
+                        ...styles.badge,
+                        ...getPriorityBadgeStyle(selectedRequirement.priority),
+                        fontSize: "0.875rem",
+                        padding: "0.25rem 0.75rem",
+                      }}
+                    >
                       {getPriorityLabel(selectedRequirement.priority)}
                     </span>
-                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                      {selectedRequirement.priority_auto_generated 
-                        ? "Générée automatiquement à partir de la description" 
+                    <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      {selectedRequirement.priority_auto_generated
+                        ? "Générée automatiquement à partir de la description"
                         : "Définie manuellement"}
                     </span>
                   </div>
-                  
+
                   <div style={styles.checkboxContainer}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id="manual-priority"
                       style={styles.checkbox}
                       checked={!selectedRequirement.priority_auto_generated}
                       onChange={() => {
                         setSelectedRequirement({
                           ...selectedRequirement,
-                          priority_auto_generated: !selectedRequirement.priority_auto_generated
-                        });
+                          priority_auto_generated: !selectedRequirement.priority_auto_generated,
+                        })
                       }}
                     />
                     <label htmlFor="manual-priority" style={styles.checkboxLabel}>
                       Spécifier manuellement la priorité
                     </label>
                   </div>
-                  
+
                   {!selectedRequirement.priority_auto_generated && (
                     <select
                       id="edit-priority"
                       style={{
                         ...styles.select,
-                        marginTop: '0.5rem',
-                        ...(focusedInput === 'edit-priority' ? styles.selectFocus : {})
+                        marginTop: "0.5rem",
+                        ...(focusedInput === "edit-priority" ? styles.selectFocus : {}),
                       }}
                       value={selectedRequirement.priority}
                       onChange={(e) => setSelectedRequirement({ ...selectedRequirement, priority: e.target.value })}
-                      onFocus={() => setFocusedInput('edit-priority')}
+                      onFocus={() => setFocusedInput("edit-priority")}
                       onBlur={() => setFocusedInput(null)}
                     >
                       <option value="low">Basse</option>
@@ -1285,11 +1484,11 @@ function Requirements() {
                     id="edit-status"
                     style={{
                       ...styles.select,
-                      ...(focusedInput === 'edit-status' ? styles.selectFocus : {})
+                      ...(focusedInput === "edit-status" ? styles.selectFocus : {}),
                     }}
                     value={selectedRequirement.status}
                     onChange={(e) => setSelectedRequirement({ ...selectedRequirement, status: e.target.value })}
-                    onFocus={() => setFocusedInput('edit-status')}
+                    onFocus={() => setFocusedInput("edit-status")}
                     onBlur={() => setFocusedInput(null)}
                   >
                     <option value="draft">Brouillon</option>
@@ -1302,24 +1501,26 @@ function Requirements() {
               <div style={styles.modalFooter}>
                 <button
                   type="button"
-                  style={hoveredItem === 'cancel-edit-btn' 
-                    ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
-                    : { ...styles.button, ...styles.outlineButton }
+                  style={
+                    hoveredItem === "cancel-edit-btn"
+                      ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
+                      : { ...styles.button, ...styles.outlineButton }
                   }
                   onClick={() => setIsEditDialogOpen(false)}
-                  onMouseEnter={() => setHoveredItem('cancel-edit-btn')}
+                  onMouseEnter={() => setHoveredItem("cancel-edit-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   Annuler
                 </button>
                 <button
                   type="button"
-                  style={hoveredItem === 'confirm-edit-btn' 
-                    ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                    : { ...styles.button, ...styles.primaryButton }
+                  style={
+                    hoveredItem === "confirm-edit-btn"
+                      ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
+                      : { ...styles.button, ...styles.primaryButton }
                   }
                   onClick={handleEditRequirement}
-                  onMouseEnter={() => setHoveredItem('confirm-edit-btn')}
+                  onMouseEnter={() => setHoveredItem("confirm-edit-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                   disabled={!selectedRequirement.title.trim()}
                 >
@@ -1343,7 +1544,7 @@ function Requirements() {
               </p>
 
               <div style={styles.modalDivider}></div>
-              
+
               <div>
                 <h4 style={styles.modalItemPreview}>{selectedRequirement.title}</h4>
                 <p style={styles.modalItemDescription}>{selectedRequirement.description}</p>
@@ -1352,24 +1553,26 @@ function Requirements() {
               <div style={styles.modalFooter}>
                 <button
                   type="button"
-                  style={hoveredItem === 'cancel-delete-btn' 
-                    ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
-                    : { ...styles.button, ...styles.outlineButton }
+                  style={
+                    hoveredItem === "cancel-delete-btn"
+                      ? { ...styles.button, ...styles.outlineButton, ...styles.outlineButtonHover }
+                      : { ...styles.button, ...styles.outlineButton }
                   }
                   onClick={() => setIsDeleteDialogOpen(false)}
-                  onMouseEnter={() => setHoveredItem('cancel-delete-btn')}
+                  onMouseEnter={() => setHoveredItem("cancel-delete-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   Annuler
                 </button>
                 <button
                   type="button"
-                  style={hoveredItem === 'confirm-delete-btn' 
-                    ? { ...styles.button, ...styles.dangerButton, ...styles.dangerButtonHover }
-                    : { ...styles.button, ...styles.dangerButton }
+                  style={
+                    hoveredItem === "confirm-delete-btn"
+                      ? { ...styles.button, ...styles.dangerButton, ...styles.dangerButtonHover }
+                      : { ...styles.button, ...styles.dangerButton }
                   }
                   onClick={handleDeleteRequirement}
-                  onMouseEnter={() => setHoveredItem('confirm-delete-btn')}
+                  onMouseEnter={() => setHoveredItem("confirm-delete-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   Supprimer
@@ -1380,6 +1583,6 @@ function Requirements() {
         </div>
       )}
     </div>
-  );
+  )
 }
-export default Requirements;
+export default Requirements

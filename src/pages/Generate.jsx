@@ -950,12 +950,53 @@ function Generate() {
     fetchHistory()
   }, [projectId, selectedRequirement, requirementId])
 
-  // Call this function from a button click or useEffect
-  const handleDownload = (format) => {
-    // In a real app, this would trigger a download
-    alert(`Téléchargement des cas de test au format ${format.toUpperCase()}`)
-  }
+  /// Update this function in your Generate.jsx file
 
+const handleDownload = async (format) => {
+  if (!format || !generatedTests) return;
+  
+  try {
+    // Show loading state
+    setIsGenerating(true);
+    
+    // Prepare request data
+    const requestData = {
+      test_cases: generatedTests,
+      format: format, // 'pdf' or 'docx'
+      project_id: projectId,
+      requirement_id: selectedRequirement?.id || null,
+      requirement_title: selectedRequirement?.title || newRequirementTitle || "Test Cases",
+    };
+    
+    const response = await api.post('/export_test_cases', requestData, {
+      responseType: 'blob', 
+    });
+    
+    const blob = new Blob([response.data], {
+      type: format === 'pdf' 
+        ? 'application/pdf' 
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    
+    // Create temporary URL
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create temporary link element
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${requestData.requirement_title.replace(/\s+/g, '_')}_test_cases.${format}`);
+    
+    // Append to body, click and clean up
+    document.body.appendChild(link);
+    link.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error(`Error downloading ${format.toUpperCase()} file:`, error);
+  } finally {
+    setIsGenerating(false);
+  }
+};
   const saveEditedTestCases = async () => {
     try {
       // Get the current active history item
@@ -1021,177 +1062,170 @@ function Generate() {
   };
 
   const handleChatSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!currentMessage.trim()) return;
+  if (!currentMessage.trim()) return;
 
-    console.log("Starting chat request with message:", currentMessage);
-    
-    // Add user message to chat immediately
-    const userMessage = { role: "user", content: currentMessage };
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage("");
+  console.log("Starting chat request with message:", currentMessage);
+  
+  // Add user message to chat immediately
+  const userMessage = { role: "user", content: currentMessage };
+  setChatMessages(prev => [...prev, userMessage]);
+  setCurrentMessage("");
 
-    // Add a temporary "Thinking..." message
-    const tempId = Date.now().toString();
-    setChatMessages(prev => [...prev, { 
-      id: tempId, 
-      role: "assistant", 
-      content: "Thinking...", 
-      isPartial: true 
-    }]);
+  const tempId = Date.now().toString();
+  setChatMessages(prev => [...prev, { 
+    id: tempId, 
+    role: "assistant", 
+    content: "Thinking...", 
+    isPartial: true 
+  }]);
 
-    try {
-      // Prepare request data
-      const requestData = {
-        message: userMessage.content,
-        project_id: projectId,
-        test_cases: generatedTests || "",
-        requirement_id: selectedRequirement?.id || null,
-        requirement_title: selectedRequirement?.title || newRequirementTitle,
-        requirements: requirementsDescription,
-        chat_history: chatMessages.filter(msg => !msg.isPartial),
-        direct_mode: directChatMode,
-        active_history_id: activeHistoryId,
-      };
+  try {
+    const requestData = {
+      message: userMessage.content,
+      project_id: projectId,
+      test_cases: generatedTests || "",
+      requirement_id: selectedRequirement?.id || null,
+      requirement_title: selectedRequirement?.title || newRequirementTitle,
+      requirements: requirementsDescription,
+      chat_history: chatMessages.filter(msg => !msg.isPartial),
+      direct_mode: directChatMode,
+      active_history_id: activeHistoryId,
+    };
 
-      console.log("Sending chat request with data:", {
-        message: requestData.message,
-        projectId: requestData.project_id,
-        directMode: requestData.direct_mode
-      });
+    console.log("Sending chat request with data:", {
+      message: requestData.message,
+      projectId: requestData.project_id,
+      directMode: requestData.direct_mode
+    });
 
-      // Use the fetch API instead of axios for better streaming support
-      const response = await fetch("/chat_with_assistant", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-        credentials: "include",
-      });
+    // Remove the temporary thinking message before starting the actual request
+    setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+    // For SSE, we need to use specific configuration with axios
+    const response = await api({
+      method: 'post',
+      url: '/chat_with_assistant',
+      data: requestData,
+      responseType: 'text', // Important for SSE
+      onDownloadProgress: (progressEvent) => {
+        // We need to manually process the text as it comes in
+        const text = progressEvent.event.target.responseText;
+        processSSEResponse(text);
       }
+    });
+    
+  } catch (error) {
+    console.error("Chat error:", error);
+    
+    setChatMessages(prev => {
+      const filtered = prev.filter(msg => msg.id !== tempId);
+      
+      return [...filtered, {
+        role: "assistant",
+        content: `Erreur de communication avec le serveur. ${error.message || ""}`
+      }];
+    });
+  }
+};
 
-      // Process the text stream
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-      let responseText = "";
-      let updatedTestsFound = false;
+// Keep track of processed text length to avoid reprocessing
+let processedLength = 0;
+let responseText = "";
+let updatedTestsFound = false;
 
-      // Remove the temporary thinking message
-      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-
-      while (true) {
-        const { done, value } = await reader.read();
+const processSSEResponse = (text) => {
+  // Only process the new part of the text
+  const newText = text.substring(processedLength);
+  processedLength = text.length;
+  
+  if (!newText) return;
+  
+  // Split by double newlines which typically separate SSE messages
+  const messages = newText.split('\n\n');
+  
+  for (const message of messages) {
+    if (!message.trim()) continue;
+    
+    // Process each line that starts with "data: "
+    const lines = message.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.replace('data: ', '');
         
-        if (done) {
-          // Process any remaining data in the buffer
-          if (buffer.trim() && !updatedTestsFound) {
-            console.log("Stream complete, processing final buffer:", buffer);
-            // If there's leftover content but no test update was found, show it
-            setChatMessages(prev => [...prev, { 
-              role: "assistant", 
-              content: responseText || buffer
+        if (data === "[DONE]") {
+          console.log("Received DONE marker");
+          
+          // Handle any remaining response text if no test updates were found
+          if (responseText && !updatedTestsFound) {
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+              role: "assistant",
+              content: responseText
             }]);
           }
-          break;
+          continue;
         }
-
-        // Decode this chunk and add to our buffer
-        buffer += decoder.decode(value, { stream: true });
         
-        // Process complete SSE messages (delimited by double newlines)
-        let lines = buffer.split("\n\n");
-        
-        // Keep the last potentially incomplete chunk in the buffer
-        buffer = lines.pop() || "";
-        
-        for (const line of lines) {
-          if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(data);
           
-          if (line.startsWith("data: ")) {
-            const data = line.replace("data: ", "");
+          // Handle updated test cases
+          if (parsed.updated_test_cases) {
+            updatedTestsFound = true;
+            const updatedTests = parsed.updated_test_cases;
             
-            if (data === "[DONE]") {
-              console.log("Received DONE marker");
-              continue;
-            }
+            console.log("Received updated test cases");
             
-            try {
-              const parsed = JSON.parse(data);
-              
-              // Handle updated test cases
-              if (parsed.updated_test_cases) {
-                updatedTestsFound = true;
-                const updatedTests = parsed.updated_test_cases;
-                
-                console.log("Received updated test cases");
-                
-                setGeneratedTests(updatedTests);
-                setEditedTests(updatedTests);
-                
-                if (isEditing) setIsEditing(false);
-                
-                setChatMessages(prev => [...prev, { 
-                  role: "assistant", 
-                  content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
-                }]);
-                
-                fetchAndUpdateHistory(updatedTests, activeHistoryId);
-              }
-              else if (parsed.chunk) {
-                responseText += parsed.chunk;
-                
-                setChatMessages(prev => {
-                  const assistantMsg = prev.find(msg => 
-                    msg.role === "assistant" && msg.isPartial
-                  );
-                  
-                  if (assistantMsg) {
-                    return prev.map(msg => 
-                      (msg.role === "assistant" && msg.isPartial) 
-                        ? { ...msg, content: responseText } 
-                        : msg
-                    );
-                  } else {
-                    return [...prev, { 
-                      role: "assistant", 
-                      content: responseText, 
-                      isPartial: true 
-                    }];
-                  }
-                });
-              }
-              else if (parsed.error) {
-                console.error("Server error:", parsed.error);
-                setChatMessages(prev => [...prev, { 
-                  role: "assistant", 
-                  content: `Error: ${parsed.error}` 
-                }]);
-              }
-            } catch (error) {
-              console.warn("Error parsing SSE message:", error, "Raw data:", data);
-            }
+            setGeneratedTests(updatedTests);
+            setEditedTests(updatedTests);
+            
+            if (isEditing) setIsEditing(false);
+            
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+              role: "assistant", 
+              content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
+            }]);
+            
+            fetchAndUpdateHistory(updatedTests, activeHistoryId);
           }
+          else if (parsed.chunk) {
+            responseText += parsed.chunk;
+            
+            setChatMessages(prev => {
+              const assistantMsg = prev.find(msg => 
+                msg.role === "assistant" && msg.isPartial
+              );
+              
+              if (assistantMsg) {
+                return prev.map(msg => 
+                  (msg.role === "assistant" && msg.isPartial) 
+                    ? { ...msg, content: responseText } 
+                    : msg
+                );
+              } else {
+                return [...prev, { 
+                  role: "assistant", 
+                  content: responseText, 
+                  isPartial: true 
+                }];
+              }
+            });
+          }
+          else if (parsed.error) {
+            console.error("Server error:", parsed.error);
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+              role: "assistant", 
+              content: `Error: ${parsed.error}` 
+            }]);
+          }
+        } catch (error) {
+          console.warn("Error parsing SSE message:", error, "Raw data:", data);
         }
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      
-      setChatMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== tempId);
-        
-        return [...filtered, {
-          role: "assistant",
-          content: `Erreur de communication avec le serveur. ${error.message || ""}`
-        }];
-      });
     }
-  };
+  }
+};
 
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
