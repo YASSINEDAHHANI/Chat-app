@@ -3,31 +3,31 @@ import { Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import api from "../api";
 
-/**
- * AdminRoute component - Protects routes that require admin privileges
- * Checks if the user is both authenticated and has admin role
- */
 const AdminRoute = ({ children }) => {
-  const [isAdmin, setIsAdmin] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAdminAccess = async () => {
       try {
         const response = await api.get('/check_session');
         
-        // Check both authentication and admin role
-        const isUserAdmin = response.data.logged_in && response.data.is_admin;
-        setIsAdmin(isUserAdmin);
+        if (response.data.logged_in) {
+          // Allow access for both admins and managers
+          const hasAccess = response.data.is_admin || response.data.is_manager;
+          setIsAuthorized(hasAccess);
+        } else {
+          setIsAuthorized(false);
+        }
       } catch (error) {
-        console.error('Authentication/admin check failed:', error);
-        setIsAdmin(false);
+        console.error('Admin access check failed:', error);
+        setIsAuthorized(false);
       } finally {
         setIsLoading(false);
       }
     };
     
-    checkAdminStatus();
+    checkAdminAccess();
   }, []);
 
   if (isLoading) {
@@ -38,8 +38,7 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  // Redirect to login if not authenticated or not admin
-  return isAdmin ? children : <Navigate to="/login" replace />;
+  return isAuthorized ? children : <Navigate to="/dashboard" replace />;
 };
 
 export default AdminRoute;
