@@ -627,7 +627,7 @@ function Dashboard({ user }) {
     
     setIsLoadingUsers(true)
     try {
-      const response = await api.get("/users/regular")
+const response = await api.get("/manager/users")
       setAvailableUsers(response.data.users || [])
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -653,7 +653,7 @@ function Dashboard({ user }) {
       console.log("Creating project with data:", projectData)
 
       // Use different endpoint for managers who can assign users
-      const endpoint = (isManager || isAdmin) ? "/projects/create_with_users" : "/projects"
+      const endpoint = (isManager || isAdmin) ? "/manager/projects" : "/projects"
       const response = await api.post(endpoint, projectData)
       
       console.log("Project created successfully:", response.data)
@@ -729,16 +729,27 @@ function Dashboard({ user }) {
         <div style={styles.headerContainer}>
           <img src={logoImage} alt="TestGen Logo" style={styles.logo} />
           <div style={styles.navLinks}>
-            {(isManager || isAdmin) && (
-              <button
-                style={styles.navLink}
-                onClick={() => navigate("/admin")}
-                onMouseEnter={() => setHoveredButton('admin')}
-                onMouseLeave={() => setHoveredButton(null)}
-              >
-                Admin Panel
-              </button>
-            )}
+            {isAdmin && (
+                    <button
+                      style={styles.navLink}
+                      onClick={() => navigate("/admin")}
+                      onMouseEnter={() => setHoveredButton('admin')}
+                      onMouseLeave={() => setHoveredButton(null)}
+                    >
+                      Admin Panel
+                    </button>
+                  )}
+
+                  {isManager && !isAdmin && (
+                    <button
+                      style={styles.navLink}
+                      onClick={() => navigate("/manager")}
+                      onMouseEnter={() => setHoveredButton('manager')}
+                      onMouseLeave={() => setHoveredButton(null)}
+                    >
+                      Manager Panel
+                    </button>
+                  )}
             <button
               style={styles.navLink}
               onClick={handleLogout}

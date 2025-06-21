@@ -124,33 +124,35 @@ const SignIn = (props) => {
   }
 
   const handleSubmit = async (event) => {
-    event.preventDefault()
-    if (!validateInputs()) return
+  event.preventDefault()
+  if (!validateInputs()) return
 
-    try {
-      setIsLoading(true)
-      // Use api instead of axios
-      const response = await api.post("/login", {
-        username: email,
-        password: password,
-      })
+  try {
+    setIsLoading(true)
+    // Use api instead of axios
+    const response = await api.post("/login", {
+      username: email,
+      password: password,
+    })
 
-      if (response.data.message === "Login successful") {
-        // Check if the user is an admin and redirect accordingly
-        if (response.data.is_admin) {
-          navigate("/admin")
-        } else {
-          navigate("/dashboard")
-        }
+    if (response.data.message === "Login successful") {
+      // Redirect based on user role
+      if (response.data.is_admin) {
+        navigate("/admin")
+      } else if (response.data.is_manager) {
+        navigate("/dashboard")  // ADD THIS LINE - Redirect managers to manager panel
       } else {
-        setError("Invalid credentials")
+        navigate("/dashboard")  // Regular users go to dashboard
       }
-    } catch (err) {
-      setError(err.response?.data?.error || "Login failed")
-    } finally {
-      setIsLoading(false)
+    } else {
+      setError("Invalid credentials")
     }
+  } catch (err) {
+    setError(err.response?.data?.error || "Login failed")
+  } finally {
+    setIsLoading(false)
   }
+}
 
   // Add global styles for light theme
   React.useEffect(() => {

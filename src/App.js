@@ -5,10 +5,11 @@ import Dashboard from './pages/DashboardPage';
 import ProjectPage from './pages/Project';
 import Requirements from './pages/Requirements';
 import Generate from './pages/Generate';
-import AdminPage from './pages/AdminPage'; // Import the new AdminPage component
+import AdminPage from './pages/AdminPage'; 
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute'; // We'll create this component next
-
+import AdminRoute from './components/AdminRoute'; 
+import ManagerPage from './pages/ManagerPage';  
+import ManagerRoute from './components/ManagerRoute';
 
 function App() {
   return (
@@ -52,14 +53,23 @@ function App() {
           } 
         />
         
-              <Route 
-                path="/admin" 
-                element={
-                  <AdminRoute>
-                    <AdminPage />
-                  </AdminRoute>
-        } 
-      />
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          } 
+        />
+        
+        <Route 
+          path="/manager" 
+          element={
+            <ManagerRoute>
+              <ManagerPage />
+            </ManagerRoute>
+          } 
+        />
         
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
