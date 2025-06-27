@@ -857,7 +857,7 @@ const response = await api.get("/manager/users")
                   onBlur={() => setFocusedInput(null)}
                 />
               </div>
-
+                      
               {/* User Assignment Section for Managers */}
               {(isManager || isAdmin) && (
                 <div style={styles.formGroup}>

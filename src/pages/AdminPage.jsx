@@ -1,731 +1,615 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import styled, { css } from "styled-components"
 import api from "../api"
+import {
+  AlertTriangle,
+  Users,
+  ArrowLeft,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  BarChart3,
+  FolderOpen,
+  UserCheck,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+} from "lucide-react"
 
-// Enhanced CSS styles with light theme aesthetics
-const styles = {
-  // Layout
-  container: {
-    display: "flex",
-    minHeight: "100vh",
-    flexDirection: "column",
-    backgroundColor: "#ffffff",
-    fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-    color: "#1f2937",
-  },
-  header: {
-    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-    backgroundColor: "#ffffff",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-  },
-  headerContainer: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "0 1.5rem",
-    display: "flex",
-    height: "4rem",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  logo: {
-    fontSize: "1.5rem",
-    fontWeight: "700",
-    color: "#3b82f6",
-    letterSpacing: "-0.025em",
-  },
-  navLinks: {
-    display: "flex",
-    gap: "1.5rem",
-    alignItems: "center",
-  },
-  navLink: {
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    color: "#4b5563",
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: "0.5rem 0.75rem",
-    borderRadius: "0.375rem",
-    transition: "all 0.2s",
-  },
-  navLinkHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    color: "#1f2937",
-  },
-  navLinkActive: {
-    color: "#3b82f6",
-    backgroundColor: "rgba(59, 130, 246, 0.08)",
-  },
-  mainContent: {
-    flex: "1",
-    backgroundColor: "#f9fafb",
-  },
-  mainContainer: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "2rem 1.5rem",
-  },
-  pageTitle: {
-    fontSize: "1.875rem",
-    fontWeight: "700",
-    marginBottom: "1.5rem",
-    color: "#1f2937",
-    letterSpacing: "-0.025em",
-  },
-  tabsContainer: {
-    display: "flex",
-    marginBottom: "1.5rem",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-    gap: "0.5rem",
-  },
-  tab: {
-    padding: "0.75rem 1rem",
-    fontWeight: "500",
-    color: "#6b7280",
-    cursor: "pointer",
-    borderBottom: "2px solid transparent",
-    transition: "all 0.2s",
-  },
-  tabActive: {
-    color: "#3b82f6",
-    borderBottomColor: "#3b82f6",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-    padding: "1.5rem",
-    marginBottom: "1.5rem",
-    transition: "box-shadow 0.2s",
-  },
-  cardHover: {
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-  },
-  cardTitle: {
-    fontSize: "1.25rem",
-    fontWeight: "600",
-    marginBottom: "1rem",
-    color: "#1f2937",
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-  },
-  statCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-    padding: "1.5rem",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "transform 0.2s, box-shadow 0.2s",
-  },
-  statCardHover: {
-    transform: "translateY(-2px)",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-  },
-  statValue: {
-    fontSize: "2.5rem",
-    fontWeight: "700",
-    color: "#3b82f6",
-    letterSpacing: "-0.025em",
-    lineHeight: "1",
-    marginBottom: "0.5rem",
-  },
-  statLabel: {
-    fontSize: "0.875rem",
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  // Table styles
-  tableContainer: {
-    overflow: "auto",
-    maxWidth: "100%",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  tableHead: {
-    backgroundColor: "#f3f4f6",
-  },
-  tableHeaderCell: {
-    padding: "0.75rem 1rem",
-    textAlign: "left",
-    fontWeight: "600",
-    color: "#4b5563",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-    whiteSpace: "nowrap",
-  },
-  tableRow: {
-    transition: "background-color 0.2s",
-  },
-  tableRowHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.02)",
-  },
-  tableCell: {
-    padding: "0.75rem 1rem",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-    verticalAlign: "middle",
-  },
-  // Button styles
-  button: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "0.375rem",
-    fontWeight: "500",
-    fontSize: "0.875rem",
-    border: "none",
-    cursor: "pointer",
-    transition: "all 0.2s",
-  },
-  primaryButton: {
-    backgroundColor: "#3b82f6",
-    color: "white",
-  },
-  primaryButtonHover: {
-    backgroundColor: "#2563eb",
-  },
-  dangerButton: {
-    backgroundColor: "#ef4444",
-    color: "white",
-  },
-  dangerButtonHover: {
-    backgroundColor: "#dc2626",
-  },
-  secondaryButton: {
-    backgroundColor: "#f9fafb",
-    color: "#4b5563",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-  },
-  secondaryButtonHover: {
-    backgroundColor: "#f3f4f6",
-    color: "#1f2937",
-    borderColor: "rgba(0, 0, 0, 0.2)",
-  },
-  smallButton: {
-    padding: "0.375rem 0.75rem",
-    fontSize: "0.75rem",
-    borderRadius: "0.25rem",
-  },
-  buttonContainer: {
-    display: "flex",
-    gap: "0.5rem",
-  },
-  // Modal styles
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 50,
-    animation: "fadeIn 0.3s ease-out",
-  },
-  modal: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.75rem",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-    padding: "1.75rem",
-    width: "100%",
-    maxWidth: "32rem",
-    position: "relative",
-    animation: "slideUp 0.3s ease-out",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-  },
-  modalTitle: {
-    fontSize: "1.5rem",
-    fontWeight: "600",
-    marginBottom: "1rem",
-    color: "#1f2937",
-  },
-  // Form styles
-  formGroup: {
-    marginBottom: "1.25rem",
-  },
-  label: {
-    display: "block",
-    marginBottom: "0.5rem",
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    color: "#4b5563",
-  },
-  input: {
-    width: "100%",
-    padding: "0.625rem 0.75rem",
-    borderRadius: "0.375rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    fontSize: "0.875rem",
-    color: "#1f2937",
-    backgroundColor: "#ffffff",
-    transition: "all 0.2s",
-  },
-  inputFocus: {
-    outline: "none",
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
-  },
-  select: {
-    width: "100%",
-    padding: "0.625rem 0.75rem",
-    borderRadius: "0.375rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    fontSize: "0.875rem",
-    color: "#1f2937",
-    backgroundColor: "#ffffff",
-    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' strokeLinecap='round' strokeLinejoin='round' strokeWidth='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.5rem center",
-    backgroundSize: "1.5em 1.5em",
-    appearance: "none",
-    paddingRight: "2.5rem",
-    transition: "all 0.2s",
-  },
-  selectFocus: {
-    outline: "none",
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
-  },
-  modalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "0.75rem",
-    marginTop: "1.5rem",
-    paddingTop: "1.25rem",
-    borderTop: "1px solid rgba(0, 0, 0, 0.05)",
-  },
-  // Badge styles
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0.25rem 0.75rem",
-    borderRadius: "9999px",
-    fontSize: "0.75rem",
-    fontWeight: "500",
-    textTransform: "capitalize",
-  },
-  adminBadge: {
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-    color: "#3b82f6",
-  },
-  userBadge: {
-    backgroundColor: "rgba(79, 70, 229, 0.1)",
-    color: "#4f46e5",
-  },
-  // Loading and error states
-  loadingContainer: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "3rem",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  loadingSpinner: {
-    height: "2.5rem",
-    width: "2.5rem",
-    borderRadius: "50%",
-    border: "3px solid rgba(0, 0, 0, 0.1)",
-    borderTopColor: "#3b82f6",
-    animation: "spin 1s linear infinite",
-  },
-  loadingText: {
-    fontSize: "0.875rem",
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  errorContainer: {
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    padding: "1rem 1.5rem",
-    borderRadius: "0.5rem",
-    color: "#ef4444",
-    marginBottom: "1.5rem",
-    border: "1px solid rgba(239, 68, 68, 0.2)",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-  },
-  errorIcon: {
-    flexShrink: 0,
-    height: "1.25rem",
-    width: "1.25rem",
-  },
-  // Details section
-  detailsSection: {
-    marginTop: "1.5rem",
-    borderTop: "1px solid rgba(0, 0, 0, 0.05)",
-    paddingTop: "1.5rem",
-  },
-  backLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    fontSize: "0.875rem",
-    color: "#4b5563",
-    marginBottom: "1.5rem",
-    cursor: "pointer",
-    padding: "0.5rem 0.75rem",
-    borderRadius: "0.375rem",
-    transition: "all 0.2s",
-  },
-  backLinkHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    color: "#1f2937",
-  },
-  backIcon: {
-    height: "1rem",
-    width: "1rem",
-    marginRight: "0.5rem",
-  },
-  sectionTitle: {
-    fontSize: "1.25rem",
-    fontWeight: "600",
-    marginBottom: "1rem",
-    color: "#1f2937",
-  },
-  gridLayout: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "1.5rem",
-  },
-  infoGroup: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "1rem",
-  },
-  infoItem: {
-    marginBottom: "0.75rem",
-  },
-  infoLabel: {
-    fontWeight: "600",
-    color: "#4b5563",
-    marginRight: "0.5rem",
-  },
-  infoValue: {
-    color: "#1f2937",
-  },
-  contextContent: {
-    whiteSpace: "pre-wrap",
-    padding: "1rem",
-    backgroundColor: "#f9fafb",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
-    fontSize: "0.875rem",
-    lineHeight: "1.5",
-    color: "#4b5563",
-    maxHeight: "200px",
-    overflow: "auto",
-  },
-  // Enhanced project view styles
-  projectHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "1.5rem",
-    padding: "1rem 1.5rem",
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
-  },
-  projectTitle: {
-    fontSize: "1.5rem",
-    fontWeight: "700",
-    color: "#1f2937",
-    margin: 0,
-  },
-  projectSubtitle: {
-    fontSize: "0.875rem",
-    color: "#6b7280",
-    marginTop: "0.25rem",
-  },
-  projectStats: {
-    display: "flex",
-    gap: "1.5rem",
-  },
-  projectStat: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  projectStatValue: {
-    fontSize: "1.5rem",
-    fontWeight: "700",
-    color: "#3b82f6",
-  },
-  projectStatLabel: {
-    fontSize: "0.75rem",
-    color: "#6b7280",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
-  projectGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 2fr",
-    gap: "1.5rem",
-  },
-  projectSidebar: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  projectInfoCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-    padding: "1.25rem",
-    transition: "box-shadow 0.2s",
-  },
-  projectInfoTitle: {
-    fontSize: "1rem",
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: "0.75rem",
-    paddingBottom: "0.75rem",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-  },
-  projectInfoItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "0.5rem 0",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-  },
-  projectInfoLabel: {
-    fontSize: "0.875rem",
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  projectInfoValue: {
-    fontSize: "0.875rem",
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  projectContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.5rem",
-  },
-  projectContentCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-    padding: "1.5rem",
-    transition: "box-shadow 0.2s",
-  },
-  projectContentTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: "1rem",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  projectContentText: {
-    fontSize: "0.875rem",
-    color: "#4b5563",
-    lineHeight: "1.5",
-    whiteSpace: "pre-wrap",
-  },
-  requirementsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  requirementCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: "0.5rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-    overflow: "hidden",
-    transition: "all 0.2s",
-  },
-  requirementCardHover: {
-    transform: "translateY(-2px)",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-  },
-  requirementHeader: {
-    padding: "1rem 1.25rem",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    cursor: "pointer",
-  },
-  requirementTitle: {
-    fontSize: "1rem",
-    fontWeight: "600",
-    color: "#1f2937",
-    margin: 0,
-  },
-  requirementBadges: {
-    display: "flex",
-    gap: "0.5rem",
-  },
-  requirementBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0.25rem 0.75rem",
-    borderRadius: "9999px",
-    fontSize: "0.75rem",
-    fontWeight: "500",
-  },
-  requirementContent: {
-    padding: "1rem 1.25rem",
-    backgroundColor: "#f9fafb",
-    fontSize: "0.875rem",
-    color: "#4b5563",
-    lineHeight: "1.5",
-  },
-  collaboratorsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5rem",
-  },
-  collaboratorItem: {
-    display: "flex",
-    alignItems: "center",
-    padding: "0.75rem",
-    backgroundColor: "#f9fafb",
-    borderRadius: "0.375rem",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
-  },
-  collaboratorAvatar: {
-    width: "2rem",
-    height: "2rem",
-    borderRadius: "9999px",
-    backgroundColor: "#e5e7eb",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: "0.75rem",
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    color: "#4b5563",
-  },
-  collaboratorInfo: {
-    flex: 1,
-  },
-  collaboratorName: {
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    color: "#1f2937",
-  },
-  collaboratorEmail: {
-    fontSize: "0.75rem",
-    color: "#6b7280",
-  },
-  collaboratorDate: {
-    fontSize: "0.75rem",
-    color: "#9ca3af",
-  },
-  tabs: {
-    display: "flex",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-    marginBottom: "1.5rem",
-  },
-  tabHover: {
-    color: "#1f2937",
-  },
-  searchInput: {
-    width: "100%",
-    padding: "0.625rem 1rem 0.625rem 2.5rem",
-    borderRadius: "0.375rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    fontSize: "0.875rem",
-    backgroundColor: "#f9fafb",
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E")`,
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "0.75rem center",
-    backgroundSize: "1rem",
-    marginBottom: "1rem",
-  },
-  filterBar: {
-    display: "flex",
-    gap: "0.75rem",
-    marginBottom: "1rem",
-    flexWrap: "wrap",
-  },
-  filterSelect: {
-    padding: "0.5rem 2rem 0.5rem 0.75rem",
-    borderRadius: "0.375rem",
-    border: "1px solid rgba(0, 0, 0, 0.1)",
-    fontSize: "0.75rem",
-    backgroundColor: "#ffffff",
-    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' strokeLinecap='round' strokeLinejoin='round' strokeWidth='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.5rem center",
-    backgroundSize: "1em",
-    appearance: "none",
-  },
-  actionButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0.5rem",
-    borderRadius: "0.375rem",
-    backgroundColor: "transparent",
-    border: "none",
-    cursor: "pointer",
-    color: "#6b7280",
-    transition: "all 0.2s",
-  },
-  actionButtonHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    color: "#1f2937",
-  },
-  actionIcon: {
-    width: "1.25rem",
-    height: "1.25rem",
-  },
-  emptyState: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "3rem 1.5rem",
-    textAlign: "center",
-  },
-  emptyStateIcon: {
-    width: "3rem",
-    height: "3rem",
-    color: "#9ca3af",
-    marginBottom: "1rem",
-  },
-  emptyStateTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: "0.5rem",
-  },
-  emptyStateText: {
-    fontSize: "0.875rem",
-    color: "#6b7280",
-    maxWidth: "24rem",
-    marginBottom: "1.5rem",
-  },
-}
+// Styled Components with clean design
+const Container = styled.div`
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+`
 
-const AdminPage = () => {
+const Header = styled.header`
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+`
+
+const HeaderContainer = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+`
+
+const Logo = styled.h1`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3b82f6;
+  margin: 0;
+  letter-spacing: -0.025em;
+`
+
+const NavContainer = styled.nav`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`
+
+const NavButton = styled.button`
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  background-color: ${props => 
+    props.active 
+      ? "#3b82f6" 
+      : "transparent"
+  };
+  color: ${props => 
+    props.active 
+      ? "white" 
+      : "#6b7280"
+  };
+
+  &:hover {
+    background-color: ${props => 
+      props.active 
+        ? "#2563eb" 
+        : "#f3f4f6"
+    };
+    color: ${props => 
+      props.active 
+        ? "white" 
+        : "#1f2937"
+    };
+  }
+`
+
+const MainContent = styled.main`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+`
+
+const PageTitle = styled.h1`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.025em;
+`
+
+const PageSubtitle = styled.p`
+  color: #6b7280;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+`
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`
+
+const StatCard = styled.div`
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+`
+
+const StatCardContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`
+
+const StatInfo = styled.div``
+
+const StatLabel = styled.p`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0 0 0.5rem 0;
+`
+
+const StatValue = styled.p`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${props => props.color || "#1f2937"};
+  margin: 0;
+  line-height: 1;
+`
+
+const StatIcon = styled.div`
+  height: 3rem;
+  width: 3rem;
+  background: ${props => props.bgColor || "rgba(107, 114, 128, 0.1)"};
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const Card = styled.div`
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+`
+
+const CardHeader = styled.div`
+  padding: 1.5rem 1.5rem 0 1.5rem;
+`
+
+const CardTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const CardContent = styled.div`
+  padding: 0 1.5rem 1.5rem 1.5rem;
+`
+
+const Button = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: ${props => (props.size === "sm" ? "0.375rem 0.75rem" : "0.625rem 1.25rem")};
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: ${props => (props.size === "sm" ? "0.75rem" : "0.875rem")};
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  ${props => {
+    switch (props.variant) {
+      case "primary":
+        return css`
+          background: #3b82f6;
+          color: white;
+          &:hover { 
+            background: #2563eb;
+            transform: translateY(-1px);
+          }
+          &:disabled { opacity: 0.5; cursor: not-allowed; }
+        `
+      case "danger":
+        return css`
+          background: #ef4444;
+          color: white;
+          &:hover { 
+            background: #dc2626;
+            transform: translateY(-1px);
+          }
+        `
+      case "outline":
+        return css`
+          background: transparent;
+          color: #6b7280;
+          border: 1px solid #d1d5db;
+          &:hover { 
+            background: #f9fafb;
+            color: #1f2937;
+            border-color: #9ca3af;
+          }
+        `
+      default:
+        return css`
+          background: #f3f4f6;
+          color: #4b5563;
+          &:hover { 
+            background: #e5e7eb;
+            transform: translateY(-1px);
+          }
+        `
+    }
+  }}
+`
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+`
+
+const TableHeader = styled.thead`
+  background: #f8fafc;
+`
+
+const TableRow = styled.tr`
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f9fafb;
+  }
+`
+
+const TableHeaderCell = styled.th`
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  background: transparent;
+`
+
+const TableCell = styled.td`
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  vertical-align: middle;
+`
+
+const Badge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  
+  ${props => {
+    switch (props.variant) {
+      case "admin":
+        return css`
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.3);
+        `
+      case "user":
+        return css`
+          background: rgba(79, 70, 229, 0.1);
+          color: #4f46e5;
+          border: 1px solid rgba(79, 70, 229, 0.3);
+        `
+      case "outline":
+        return css`
+          background: transparent;
+          color: #6b7280;
+          border: 1px solid #d1d5db;
+        `
+      default:
+        return css`
+          background: #f3f4f6;
+          color: #6b7280;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        `
+    }
+  }}
+`
+
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.3s ease-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  width: 100%;
+  max-width: 32rem;
+  border: 1px solid #e5e7eb;
+  animation: slideUp 0.3s ease-out;
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+`
+
+const ModalTitle = styled.h3`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+`
+
+const FormGroup = styled.div`
+  margin-bottom: 1.25rem;
+`
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+`
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f3f4f6;
+`
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  flex-direction: column;
+  gap: 1rem;
+`
+
+const LoadingSpinner = styled.div`
+  height: 3rem;
+  width: 3rem;
+  border-radius: 50%;
+  border: 3px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`
+
+const ErrorAlert = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  color: #ef4444;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #6b7280;
+`
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`
+
+const GridLayout = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+`
+
+const ProjectDetailContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+`
+
+const ProjectSidebar = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`
+
+const ProjectContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`
+
+const ProjectInfoCard = styled(Card)`
+  margin-bottom: 0;
+`
+
+const ProjectInfoItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`
+
+const ProjectInfoLabel = styled.span`
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+`
+
+const ProjectInfoValue = styled.span`
+  font-size: 0.875rem;
+  color: #1f2937;
+  font-weight: 500;
+`
+
+const RequirementCard = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+`
+
+const RequirementHeader = styled.div`
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+`
+
+const RequirementTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+`
+
+const RequirementBadges = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`
+
+const RequirementContent = styled.div`
+  padding: 1rem 1.25rem;
+  background: #f9fafb;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+`
+
+const BackButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+  }
+`
+
+const AnimatedDiv = styled.div`
+  animation: fadeInUp 0.6s ease-out;
+  animation-delay: ${props => props.delay || 0}ms;
+  animation-fill-mode: both;
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`
+
+export default function AdminPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("dashboard")
   const [dashboardData, setDashboardData] = useState(null)
@@ -733,9 +617,11 @@ const AdminPage = () => {
   const [projects, setProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedProject, setSelectedProject] = useState(null)
+  const [selectedUser, setSelectedUser] = useState(null)
   const [expandedRequirement, setExpandedRequirement] = useState(null)
 
-  // Add states for user form
+  // User form states
   const [showUserForm, setShowUserForm] = useState(false)
   const [newUser, setNewUser] = useState({
     username: "",
@@ -743,173 +629,9 @@ const AdminPage = () => {
     role: "user",
   })
 
-  // Add state for edit user form
+  // Edit user form states
   const [showEditForm, setShowEditForm] = useState(false)
   const [editUser, setEditUser] = useState(null)
-
-  // State for project details
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [selectedUser, setSelectedUser] = useState(null)
-
-  // Add state for hovered button
-  const [hoveredButton, setHoveredButton] = useState(null)
-  const [focusedInput, setFocusedInput] = useState(null)
-
-  // Utility functions for displaying requirement properties
-  const getReadableCategory = (category) => {
-    const categoryMap = {
-      functionality: "Functionality",
-      ui: "UI/UX",
-      security: "Security",
-      performance: "Performance",
-      usability: "Usability",
-      compatibility: "Compatibility",
-      accessibility: "Accessibility",
-    }
-    return categoryMap[category] || category
-  }
-
-  const getReadablePriority = (priority) => {
-    const priorityMap = {
-      high: "High",
-      medium: "Medium",
-      low: "Low",
-    }
-    return priorityMap[priority] || priority
-  }
-
-  const getReadableStatus = (status) => {
-    const statusMap = {
-      approved: "Approved",
-      "in-review": "In Review",
-      draft: "Draft",
-    }
-    return statusMap[status] || status
-  }
-
-  const getCategoryColor = (category) => {
-    const colorMap = {
-      functionality: "rgba(59, 130, 246, 0.1)", // blue
-      ui: "rgba(239, 68, 68, 0.1)", // red
-      security: "rgba(245, 158, 11, 0.1)", // amber
-      performance: "rgba(16, 185, 129, 0.1)", // green
-      usability: "rgba(139, 92, 246, 0.1)", // purple
-      compatibility: "rgba(14, 165, 233, 0.1)", // light blue
-      accessibility: "rgba(249, 115, 22, 0.1)", // orange
-    }
-    return colorMap[category] || "rgba(107, 114, 128, 0.1)"
-  }
-
-  const getPriorityColor = (priority) => {
-    const colorMap = {
-      high: "rgba(239, 68, 68, 0.1)", // red
-      medium: "rgba(245, 158, 11, 0.1)", // amber
-      low: "rgba(16, 185, 129, 0.1)", // green
-    }
-    return colorMap[priority] || "rgba(107, 114, 128, 0.1)"
-  }
-
-  const getStatusColor = (status) => {
-    const colorMap = {
-      approved: "rgba(16, 185, 129, 0.1)", // green
-      "in-review": "rgba(59, 130, 246, 0.1)", // blue
-      draft: "rgba(107, 114, 128, 0.1)", // gray
-    }
-    return colorMap[status] || "rgba(107, 114, 128, 0.1)"
-  }
-
-  const getPriorityTextColor = (priority) => {
-    const colorMap = {
-      high: "#dc2626", // red
-      medium: "#d97706", // amber
-      low: "#059669", // green
-    }
-    return colorMap[priority] || "#6b7280"
-  }
-
-  const getStatusTextColor = (status) => {
-    const colorMap = {
-      approved: "#059669", // green
-      "in-review": "#2563eb", // blue
-      draft: "#6b7280", // gray
-    }
-    return colorMap[status] || "#6b7280"
-  }
-
-  const getCategoryTextColor = (category) => {
-    const colorMap = {
-      functionality: "#2563eb", // blue
-      ui: "#dc2626", // red
-      security: "#d97706", // amber
-      performance: "#059669", // green
-      usability: "#7c3aed", // purple
-      compatibility: "#0ea5e9", // light blue
-      accessibility: "#ea580c", // orange
-    }
-    return colorMap[category] || "#6b7280"
-  }
-
-  useEffect(() => {
-    // Add custom styles for animations
-    const styleTag = document.createElement("style")
-    styleTag.type = "text/css"
-    styleTag.innerHTML = `
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      
-      @keyframes slideUp {
-        from { transform: translateY(10px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-      
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      
-      /* Custom scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      
-      ::-webkit-scrollbar-track {
-        background: #f3f4f6;
-        border-radius: 10px;
-      }
-      
-      ::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 10px;
-      }
-      
-      ::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
-      }
-      
-      /* Font smoothing */
-      * {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      
-      /* Body styles */
-      body {
-        background-color: #ffffff;
-        margin: 0;
-        padding: 0;
-      }
-    `
-    document.head.appendChild(styleTag)
-
-    return () => {
-      if (document.head.contains(styleTag)) {
-        document.head.removeChild(styleTag)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     fetchData()
@@ -920,22 +642,26 @@ const AdminPage = () => {
     setError(null)
 
     try {
-      // Fetch data based on active tab
       if (activeTab === "dashboard") {
+        console.log("Fetching admin dashboard data...")
         const response = await api.get("/admin/dashboard")
+        console.log("Dashboard response:", response.data)
         setDashboardData(response.data)
       } else if (activeTab === "users") {
+        console.log("Fetching admin users data...")
         const response = await api.get("/admin/users")
-        setUsers(response.data.users)
+        console.log("Users response:", response.data)
+        setUsers(response.data.users || [])
       } else if (activeTab === "projects") {
+        console.log("Fetching admin projects data...")
         const response = await api.get("/admin/projects")
-        setProjects(response.data.projects)
+        console.log("Projects response:", response.data)
+        setProjects(response.data.projects || [])
       }
     } catch (error) {
       console.error("Error fetching data:", error)
-      setError(error.response?.data?.error || "An error occurred")
+      setError(error.response?.data?.error || `Failed to fetch ${activeTab} data`)
 
-      // If unauthorized, redirect to login
       if (error.response?.status === 401 || error.response?.status === 403) {
         navigate("/login")
       }
@@ -946,7 +672,6 @@ const AdminPage = () => {
 
   const handleCreateUser = async () => {
     try {
-      // Set the email to be the same as username
       const userData = {
         ...newUser,
         email: newUser.username,
@@ -970,22 +695,17 @@ const AdminPage = () => {
     if (!editUser) return
 
     try {
-      // Prepare the update data
       const updateData = {
         role: editUser.role,
       }
 
-      // Only include password if it was changed
       if (editUser.newPassword) {
         updateData.password = editUser.newPassword
       }
 
       const response = await api.put(`/admin/users/${editUser._id}`, updateData)
-
-      // Update the users list
       setUsers(users.map((user) => (user._id === editUser._id ? response.data.user : user)))
 
-      // If we're editing the currently selected user, update that too
       if (selectedUser && selectedUser._id === editUser._id) {
         setSelectedUser(response.data.user)
       }
@@ -1003,6 +723,9 @@ const AdminPage = () => {
       try {
         await api.delete(`/admin/users/${userId}`)
         setUsers(users.filter((user) => user._id !== userId))
+        if (selectedUser && selectedUser._id === userId) {
+          setSelectedUser(null)
+        }
       } catch (error) {
         console.error("Error deleting user:", error)
         setError(error.response?.data?.error || "Failed to delete user")
@@ -1015,6 +738,9 @@ const AdminPage = () => {
       try {
         await api.delete(`/admin/projects/${projectId}`)
         setProjects(projects.filter((project) => project.id !== projectId))
+        if (selectedProject && selectedProject.id === projectId) {
+          setSelectedProject(null)
+        }
       } catch (error) {
         console.error("Error deleting project:", error)
         setError(error.response?.data?.error || "Failed to delete project")
@@ -1058,1140 +784,834 @@ const AdminPage = () => {
       navigate("/login")
     } catch (error) {
       console.error("Logout failed:", error)
+      navigate("/login")
     }
   }
 
-  // SVG Icons as React components for better integration
-  const ArrowLeftIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" style={styles.backIcon} viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-
-  const ExclamationIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" style={styles.errorIcon} viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-
-  const ChevronDownIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" style={styles.actionIcon} viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-
-  const ChevronUpIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" style={styles.actionIcon} viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-
-  const DocumentIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" style={styles.emptyStateIcon} viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-
-  const renderUsers = () => {
-    if (selectedUser) {
-      return (
-        <div>
-          <div
-            style={
-              hoveredButton === "back-to-users" ? { ...styles.backLink, ...styles.backLinkHover } : styles.backLink
-            }
-            onClick={() => setSelectedUser(null)}
-            onMouseEnter={() => setHoveredButton("back-to-users")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <ArrowLeftIcon />
-            Back to users list
-          </div>
-
-          <h2 style={styles.pageTitle}>User Details: {selectedUser.username}</h2>
-
-          <div
-            style={hoveredButton === "user-card" ? { ...styles.card, ...styles.cardHover } : styles.card}
-            onMouseEnter={() => setHoveredButton("user-card")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <h3 style={styles.cardTitle}>User Information</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div>
-                <p>
-                  <strong>Username:</strong> {selectedUser.username}
-                </p>
-                <p>
-                  <strong>Email:</strong> {selectedUser.email || selectedUser.username}
-                </p>
-                <p>
-                  <strong>Role:</strong>
-                  <span
-                    style={{
-                      ...styles.badge,
-                      ...(selectedUser.role === "admin" ? styles.adminBadge : styles.userBadge),
-                      marginLeft: "0.5rem",
-                    }}
-                  >
-                    {selectedUser.role || "user"}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p>
-                  <strong>Created:</strong>{" "}
-                  {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : "N/A"}
-                </p>
-                <p>
-                  <strong>Created By:</strong> {selectedUser.created_by || "N/A"}
-                </p>
-                <p>
-                  <strong>Last Updated:</strong>{" "}
-                  {selectedUser.updated_at ? new Date(selectedUser.updated_at).toLocaleString() : "N/A"}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem" }}>
-              <button
-                style={
-                  hoveredButton === "edit-user"
-                    ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                    : { ...styles.button, ...styles.primaryButton }
-                }
-                onClick={() => handleStartEditUser(selectedUser)}
-                onMouseEnter={() => setHoveredButton("edit-user")}
-                onMouseLeave={() => setHoveredButton("user-card")}
-              >
-                Edit User
-              </button>
-              <button
-                style={
-                  hoveredButton === "delete-user"
-                    ? { ...styles.button, ...styles.dangerButton, ...styles.dangerButtonHover }
-                    : { ...styles.button, ...styles.dangerButton }
-                }
-                onClick={() => {
-                  handleDeleteUser(selectedUser._id)
-                  setSelectedUser(null)
-                }}
-                onMouseEnter={() => setHoveredButton("delete-user")}
-                onMouseLeave={() => setHoveredButton("user-card")}
-              >
-                Delete User
-              </button>
-            </div>
-          </div>
-        </div>
-      )
+  // Utility functions
+  const getReadableCategory = (category) => {
+    const categoryMap = {
+      functionality: "Functionality",
+      ui: "UI/UX", 
+      security: "Security",
+      performance: "Performance",
+      usability: "Usability",
+      compatibility: "Compatibility",
+      accessibility: "Accessibility",
     }
-
-    return (
-      <div>
-        <h2 style={styles.pageTitle}>User Management</h2>
-
-        <div style={{ marginBottom: "1rem" }}>
-          <button
-            style={
-              hoveredButton === "add-user"
-                ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                : { ...styles.button, ...styles.primaryButton }
-            }
-            onClick={() => setShowUserForm(true)}
-            onMouseEnter={() => setHoveredButton("add-user")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            Add New User
-          </button>
-        </div>
-
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>All Users</h3>
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead style={styles.tableHead}>
-                <tr>
-                  <th style={styles.tableHeaderCell}>Username</th>
-                  <th style={styles.tableHeaderCell}>Email</th>
-                  <th style={styles.tableHeaderCell}>Role</th>
-                  <th style={styles.tableHeaderCell}>Created</th>
-                  <th style={styles.tableHeaderCell}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr
-                    key={user._id}
-                    style={
-                      hoveredButton === `user-row-${user._id}`
-                        ? { ...styles.tableRow, ...styles.tableRowHover }
-                        : styles.tableRow
-                    }
-                    onMouseEnter={() => setHoveredButton(`user-row-${user._id}`)}
-                    onMouseLeave={() => setHoveredButton(null)}
-                  >
-                    <td style={styles.tableCell}>{user.username}</td>
-                    <td style={styles.tableCell}>{user.email || user.username}</td>
-                    <td style={styles.tableCell}>
-                      <span
-                        style={{
-                          ...styles.badge,
-                          ...(user.role === "admin" ? styles.adminBadge : styles.userBadge),
-                        }}
-                      >
-                        {user.role || "user"}
-                      </span>
-                    </td>
-                    <td style={styles.tableCell}>
-                      {user.created_at ? new Date(user.created_at).toLocaleString() : "N/A"}
-                    </td>
-                    <td style={styles.tableCell}>
-                      <div style={styles.buttonContainer}>
-                        <button
-                          style={
-                            hoveredButton === `view-user-${user._id}`
-                              ? {
-                                  ...styles.button,
-                                  ...styles.smallButton,
-                                  ...styles.secondaryButton,
-                                  ...styles.secondaryButtonHover,
-                                }
-                              : { ...styles.button, ...styles.smallButton, ...styles.secondaryButton }
-                          }
-                          onClick={() => handleViewUserDetails(user._id)}
-                          onMouseEnter={() => setHoveredButton(`view-user-${user._id}`)}
-                          onMouseLeave={() => setHoveredButton(`user-row-${user._id}`)}
-                        >
-                          View
-                        </button>
-                        <button
-                          style={
-                            hoveredButton === `edit-user-${user._id}`
-                              ? {
-                                  ...styles.button,
-                                  ...styles.smallButton,
-                                  ...styles.secondaryButton,
-                                  ...styles.secondaryButtonHover,
-                                }
-                              : { ...styles.button, ...styles.smallButton, ...styles.secondaryButton }
-                          }
-                          onClick={() => handleStartEditUser(user)}
-                          onMouseEnter={() => setHoveredButton(`edit-user-${user._id}`)}
-                          onMouseLeave={() => setHoveredButton(`user-row-${user._id}`)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          style={
-                            hoveredButton === `delete-user-${user._id}`
-                              ? {
-                                  ...styles.button,
-                                  ...styles.smallButton,
-                                  ...styles.dangerButton,
-                                  ...styles.dangerButtonHover,
-                                }
-                              : { ...styles.button, ...styles.smallButton, ...styles.dangerButton }
-                          }
-                          onClick={() => handleDeleteUser(user._id)}
-                          onMouseEnter={() => setHoveredButton(`delete-user-${user._id}`)}
-                          onMouseLeave={() => setHoveredButton(`user-row-${user._id}`)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )
+    return categoryMap[category] || category
   }
 
-  const renderProjects = () => {
-    if (selectedProject) {
-      // Enhanced project details view
-      return (
-        <div>
-          <div
-            style={
-              hoveredButton === "back-to-projects" ? { ...styles.backLink, ...styles.backLinkHover } : styles.backLink
-            }
-            onClick={() => setSelectedProject(null)}
-            onMouseEnter={() => setHoveredButton("back-to-projects")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <ArrowLeftIcon />
-            Back to projects list
-          </div>
-
-          <div style={styles.projectHeader}>
-            <div>
-              <h2 style={styles.projectTitle}>{selectedProject.name}</h2>
-              <p style={styles.projectSubtitle}>
-                Created by {selectedProject.user} on {new Date(selectedProject.created_at).toLocaleDateString()}
-              </p>
-            </div>
-            <div style={styles.projectStats}>
-              <div style={styles.projectStat}>
-                <span style={styles.projectStatValue}>{selectedProject.requirements?.length || 0}</span>
-                <span style={styles.projectStatLabel}>Requirements</span>
-              </div>
-              <div style={styles.projectStat}>
-                <span style={styles.projectStatValue}>{selectedProject.collaborators?.length || 0}</span>
-                <span style={styles.projectStatLabel}>Collaborators</span>
-              </div>
-              <div style={styles.projectStat}>
-                <span style={styles.projectStatValue}>{selectedProject.test_cases?.length || 0}</span>
-                <span style={styles.projectStatLabel}>Test Cases</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={styles.projectGrid}>
-            <div style={styles.projectSidebar}>
-              <div
-                style={
-                  hoveredButton === "project-info-card"
-                    ? {
-                        ...styles.projectInfoCard,
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                      }
-                    : styles.projectInfoCard
-                }
-                onMouseEnter={() => setHoveredButton("project-info-card")}
-                onMouseLeave={() => setHoveredButton(null)}
-              >
-                <h3 style={styles.projectInfoTitle}>Project Information</h3>
-                <div style={styles.projectInfoItem}>
-                  <span style={styles.projectInfoLabel}>Owner</span>
-                  <span style={styles.projectInfoValue}>{selectedProject.user}</span>
-                </div>
-                <div style={styles.projectInfoItem}>
-                  <span style={styles.projectInfoLabel}>Created</span>
-                  <span style={styles.projectInfoValue}>
-                    {new Date(selectedProject.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <div style={styles.projectInfoItem}>
-                  <span style={styles.projectInfoLabel}>Last Updated</span>
-                  <span style={styles.projectInfoValue}>
-                    {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
-                  </span>
-                </div>
-                <div style={styles.projectInfoItem}>
-                  <span style={styles.projectInfoLabel}>Language</span>
-                  <span style={styles.projectInfoValue}>{selectedProject.language || "Not specified"}</span>
-                </div>
-                <div style={styles.projectInfoItem}>
-                  <span style={styles.projectInfoLabel}>AI Model</span>
-                  <span style={styles.projectInfoValue}>{selectedProject.ai_model || "Default"}</span>
-                </div>
-                <div style={{ marginTop: "1.25rem" }}>
-                  <button
-                    style={
-                      hoveredButton === "delete-project"
-                        ? { ...styles.button, ...styles.dangerButton, ...styles.dangerButtonHover, width: "100%" }
-                        : { ...styles.button, ...styles.dangerButton, width: "100%" }
-                    }
-                    onClick={() => {
-                      handleDeleteProject(selectedProject.id)
-                      setSelectedProject(null)
-                    }}
-                    onMouseEnter={() => setHoveredButton("delete-project")}
-                    onMouseLeave={() => setHoveredButton("project-info-card")}
-                  >
-                    Delete Project
-                  </button>
-                </div>
-              </div>
-
-              {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
-                <div
-                  style={
-                    hoveredButton === "collaborators-card"
-                      ? {
-                          ...styles.projectInfoCard,
-                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        }
-                      : styles.projectInfoCard
-                  }
-                  onMouseEnter={() => setHoveredButton("collaborators-card")}
-                  onMouseLeave={() => setHoveredButton(null)}
-                >
-                  <h3 style={styles.projectInfoTitle}>Collaborators ({selectedProject.collaborator_details.length})</h3>
-                  <div style={styles.collaboratorsList}>
-                    {selectedProject.collaborator_details.map((collab) => (
-                      <div key={collab._id} style={styles.collaboratorItem}>
-                        <div style={styles.collaboratorAvatar}>{collab.username.charAt(0).toUpperCase()}</div>
-                        <div style={styles.collaboratorInfo}>
-                          <div style={styles.collaboratorName}>{collab.username}</div>
-                          <div style={styles.collaboratorEmail}>{collab.email}</div>
-                        </div>
-                        <div style={styles.collaboratorDate}>
-                          {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={styles.projectContent}>
-              <div
-                style={
-                  hoveredButton === "context-card"
-                    ? {
-                        ...styles.projectContentCard,
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                      }
-                    : styles.projectContentCard
-                }
-                onMouseEnter={() => setHoveredButton("context-card")}
-                onMouseLeave={() => setHoveredButton(null)}
-              >
-                <h3 style={styles.projectContentTitle}>Project Context</h3>
-                <div style={styles.projectContentText}>
-                  {selectedProject.context || "No context provided for this project."}
-                </div>
-              </div>
-
-              {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
-                <div
-                  style={
-                    hoveredButton === "requirements-card"
-                      ? {
-                          ...styles.projectContentCard,
-                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        }
-                      : styles.projectContentCard
-                  }
-                  onMouseEnter={() => setHoveredButton("requirements-card")}
-                  onMouseLeave={() => setHoveredButton(null)}
-                >
-                  <h3 style={styles.projectContentTitle}>
-                    Requirements ({selectedProject.requirements.length})
-                    <input
-                      type="text"
-                      placeholder="Search requirements..."
-                      style={styles.searchInput}
-                      onFocus={() => setFocusedInput("search-requirements")}
-                      onBlur={() => setFocusedInput(null)}
-                    />
-                  </h3>
-
-                  <div style={styles.filterBar}>
-                    <select
-                      style={styles.filterSelect}
-                      onFocus={() => setFocusedInput("filter-category")}
-                      onBlur={() => setFocusedInput(null)}
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="functionality">Functionality</option>
-                      <option value="ui">UI/UX</option>
-                      <option value="security">Security</option>
-                      <option value="performance">Performance</option>
-                      <option value="usability">Usability</option>
-                      <option value="compatibility">Compatibility</option>
-                      <option value="accessibility">Accessibility</option>
-                    </select>
-
-                    <select
-                      style={styles.filterSelect}
-                      onFocus={() => setFocusedInput("filter-priority")}
-                      onBlur={() => setFocusedInput(null)}
-                    >
-                      <option value="all">All Priorities</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-
-                    <select
-                      style={styles.filterSelect}
-                      onFocus={() => setFocusedInput("filter-status")}
-                      onBlur={() => setFocusedInput(null)}
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="approved">Approved</option>
-                      <option value="in-review">In Review</option>
-                      <option value="draft">Draft</option>
-                    </select>
-                  </div>
-
-                  <div style={styles.requirementsList}>
-                    {selectedProject.requirements.map((req) => (
-                      <div
-                        key={req.id}
-                        style={
-                          hoveredButton === `req-${req.id}`
-                            ? { ...styles.requirementCard, ...styles.requirementCardHover }
-                            : styles.requirementCard
-                        }
-                        onMouseEnter={() => setHoveredButton(`req-${req.id}`)}
-                        onMouseLeave={() => setHoveredButton(null)}
-                      >
-                        <div
-                          style={styles.requirementHeader}
-                          onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
-                        >
-                          <h4 style={styles.requirementTitle}>{req.title}</h4>
-                          <div style={styles.requirementBadges}>
-                            <span
-                              style={{
-                                ...styles.requirementBadge,
-                                backgroundColor: getCategoryColor(req.category),
-                                color: getCategoryTextColor(req.category),
-                              }}
-                            >
-                              {getReadableCategory(req.category)}
-                            </span>
-                            <span
-                              style={{
-                                ...styles.requirementBadge,
-                                backgroundColor: getPriorityColor(req.priority),
-                                color: getPriorityTextColor(req.priority),
-                              }}
-                            >
-                              {getReadablePriority(req.priority)}
-                            </span>
-                            <button
-                              style={
-                                hoveredButton === `req-toggle-${req.id}`
-                                  ? { ...styles.actionButton, ...styles.actionButtonHover }
-                                  : styles.actionButton
-                              }
-                              onMouseEnter={() => setHoveredButton(`req-toggle-${req.id}`)}
-                              onMouseLeave={() => setHoveredButton(`req-${req.id}`)}
-                            >
-                              {expandedRequirement === req.id ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                            </button>
-                          </div>
-                        </div>
-                        {expandedRequirement === req.id && (
-                          <div style={styles.requirementContent}>
-                            <p>{req.description}</p>
-                            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
-                              <span
-                                style={{
-                                  ...styles.requirementBadge,
-                                  backgroundColor: getStatusColor(req.status),
-                                  color: getStatusTextColor(req.status),
-                                }}
-                              >
-                                Status: {getReadableStatus(req.status)}
-                              </span>
-                              {req.priority_auto_generated && (
-                                <span
-                                  style={{
-                                    ...styles.requirementBadge,
-                                    backgroundColor: "rgba(107, 114, 128, 0.1)",
-                                    color: "#6b7280",
-                                  }}
-                                >
-                                  Auto-generated priority
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={
-                    hoveredButton === "requirements-empty"
-                      ? {
-                          ...styles.projectContentCard,
-                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        }
-                      : styles.projectContentCard
-                  }
-                  onMouseEnter={() => setHoveredButton("requirements-empty")}
-                  onMouseLeave={() => setHoveredButton(null)}
-                >
-                  <div style={styles.emptyState}>
-                    <DocumentIcon />
-                    <h3 style={styles.emptyStateTitle}>No Requirements Found</h3>
-                    <p style={styles.emptyStateText}>
-                      This project doesn't have any requirements yet. Requirements are used to define the functionality
-                      and features of the project.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )
+  const getReadablePriority = (priority) => {
+    const priorityMap = {
+      high: "High",
+      medium: "Medium", 
+      low: "Low",
     }
+    return priorityMap[priority] || priority
+  }
 
-    return (
-      <div>
-        <h2 style={styles.pageTitle}>Project Management</h2>
+  const getReadableStatus = (status) => {
+    const statusMap = {
+      approved: "Approved",
+      "in-review": "In Review",
+      draft: "Draft",
+    }
+    return statusMap[status] || status
+  }
 
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>All Projects</h3>
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead style={styles.tableHead}>
-                <tr>
-                  <th style={styles.tableHeaderCell}>Name</th>
-                  <th style={styles.tableHeaderCell}>Owner</th>
-                  <th style={styles.tableHeaderCell}>Created</th>
-                  <th style={styles.tableHeaderCell}>Requirements</th>
-                  <th style={styles.tableHeaderCell}>Collaborators</th>
-                  <th style={styles.tableHeaderCell}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((project) => (
-                  <tr
-                    key={project._id}
-                    style={
-                      hoveredButton === `project-row-${project.id}`
-                        ? { ...styles.tableRow, ...styles.tableRowHover }
-                        : styles.tableRow
-                    }
-                    onMouseEnter={() => setHoveredButton(`project-row-${project.id}`)}
-                    onMouseLeave={() => setHoveredButton(null)}
-                  >
-                    <td style={styles.tableCell}>{project.name}</td>
-                    <td style={styles.tableCell}>{project.user}</td>
-                    <td style={styles.tableCell}>{new Date(project.created_at).toLocaleDateString()}</td>
-                    <td style={styles.tableCell}>{project.requirements?.length || 0}</td>
-                    <td style={styles.tableCell}>{project.collaborators?.length || 0}</td>
-                    <td style={styles.tableCell}>
-                      <div style={styles.buttonContainer}>
-                        <button
-                          style={
-                            hoveredButton === `view-project-${project.id}`
-                              ? {
-                                  ...styles.button,
-                                  ...styles.smallButton,
-                                  ...styles.primaryButton,
-                                  ...styles.primaryButtonHover,
-                                }
-                              : { ...styles.button, ...styles.smallButton, ...styles.primaryButton }
-                          }
-                          onClick={() => handleViewProjectDetails(project.id)}
-                          onMouseEnter={() => setHoveredButton(`view-project-${project.id}`)}
-                          onMouseLeave={() => setHoveredButton(`project-row-${project.id}`)}
-                        >
-                          View Details
-                        </button>
-                        <button
-                          style={
-                            hoveredButton === `delete-project-${project.id}`
-                              ? {
-                                  ...styles.button,
-                                  ...styles.smallButton,
-                                  ...styles.dangerButton,
-                                  ...styles.dangerButtonHover,
-                                }
-                              : { ...styles.button, ...styles.smallButton, ...styles.dangerButton }
-                          }
-                          onClick={() => handleDeleteProject(project.id)}
-                          onMouseEnter={() => setHoveredButton(`delete-project-${project.id}`)}
-                          onMouseLeave={() => setHoveredButton(`project-row-${project.id}`)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )
+  const getCategoryColor = (category) => {
+    const colorMap = {
+      functionality: "rgba(59, 130, 246, 0.1)",
+      ui: "rgba(239, 68, 68, 0.1)",
+      security: "rgba(245, 158, 11, 0.1)",
+      performance: "rgba(16, 185, 129, 0.1)",
+      usability: "rgba(139, 92, 246, 0.1)",
+      compatibility: "rgba(14, 165, 233, 0.1)",
+      accessibility: "rgba(249, 115, 22, 0.1)",
+    }
+    return colorMap[category] || "rgba(107, 114, 128, 0.1)"
+  }
+
+  const getCategoryTextColor = (category) => {
+    const colorMap = {
+      functionality: "#2563eb",
+      ui: "#dc2626",
+      security: "#d97706",
+      performance: "#059669",
+      usability: "#7c3aed",
+      compatibility: "#0ea5e9",
+      accessibility: "#ea580c",
+    }
+    return colorMap[category] || "#6b7280"
+  }
+
+  const getPriorityColor = (priority) => {
+    const colorMap = {
+      high: "rgba(239, 68, 68, 0.1)",
+      medium: "rgba(245, 158, 11, 0.1)",
+      low: "rgba(16, 185, 129, 0.1)",
+    }
+    return colorMap[priority] || "rgba(107, 114, 128, 0.1)"
+  }
+
+  const getPriorityTextColor = (priority) => {
+    const colorMap = {
+      high: "#dc2626",
+      medium: "#d97706",
+      low: "#059669",
+    }
+    return colorMap[priority] || "#6b7280"
   }
 
   const renderDashboard = () => {
     if (!dashboardData) return null
 
-    // Add defensive checks for dashboard data structure
     const usersStats = dashboardData.users_stats || { total: 0, by_role: {} }
     const projectsStats = dashboardData.projects_stats || { total: 0, by_user: [] }
     const recentUsers = dashboardData.recent_users || []
     const recentProjects = dashboardData.recent_projects || []
 
+    const statsData = [
+      { 
+        title: "Total Users", 
+        value: usersStats.total || 0, 
+        icon: Users, 
+        color: "#3b82f6",
+        bgColor: "rgba(59, 130, 246, 0.1)"
+      },
+      { 
+        title: "Admin Users", 
+        value: usersStats.by_role.admin || 0, 
+        icon: UserCheck, 
+        color: "#8b5cf6",
+        bgColor: "rgba(139, 92, 246, 0.1)"
+      },
+      { 
+        title: "Regular Users", 
+        value: usersStats.by_role.user || 0, 
+        icon: Users, 
+        color: "#10b981",
+        bgColor: "rgba(16, 185, 129, 0.1)"
+      },
+      { 
+        title: "Total Projects", 
+        value: projectsStats.total || 0, 
+        icon: FolderOpen, 
+        color: "#f59e0b",
+        bgColor: "rgba(245, 158, 11, 0.1)"
+      },
+    ]
+
     return (
-      <div>
-        <h2 style={styles.pageTitle}>Admin Dashboard</h2>
+      <AnimatedDiv>
+        <PageTitle>Admin Dashboard</PageTitle>
+        <PageSubtitle>System overview and management tools</PageSubtitle>
 
-        <div style={styles.statsGrid}>
-          <div
-            style={
-              hoveredButton === "stat-total-users" ? { ...styles.statCard, ...styles.statCardHover } : styles.statCard
-            }
-            onMouseEnter={() => setHoveredButton("stat-total-users")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <span style={styles.statValue}>{usersStats.total}</span>
-            <span style={styles.statLabel}>Total Users</span>
-          </div>
-          <div
-            style={
-              hoveredButton === "stat-admin-users" ? { ...styles.statCard, ...styles.statCardHover } : styles.statCard
-            }
-            onMouseEnter={() => setHoveredButton("stat-admin-users")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <span style={styles.statValue}>{usersStats.by_role.admin || 0}</span>
-            <span style={styles.statLabel}>Admin Users</span>
-          </div>
-          <div
-            style={
-              hoveredButton === "stat-regular-users" ? { ...styles.statCard, ...styles.statCardHover } : styles.statCard
-            }
-            onMouseEnter={() => setHoveredButton("stat-regular-users")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <span style={styles.statValue}>{usersStats.by_role.user || 0}</span>
-            <span style={styles.statLabel}>Regular Users</span>
-          </div>
-          <div
-            style={
-              hoveredButton === "stat-total-projects"
-                ? { ...styles.statCard, ...styles.statCardHover }
-                : styles.statCard
-            }
-            onMouseEnter={() => setHoveredButton("stat-total-projects")}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <span style={styles.statValue}>{projectsStats.total}</span>
-            <span style={styles.statLabel}>Total Projects</span>
-          </div>
-        </div>
+        <StatsGrid>
+          {statsData.map((stat, index) => (
+            <AnimatedDiv key={stat.title} delay={index * 100}>
+              <StatCard>
+                <StatCardContent>
+                  <StatInfo>
+                    <StatLabel>{stat.title}</StatLabel>
+                    <StatValue color={stat.color}>{stat.value}</StatValue>
+                  </StatInfo>
+                  <StatIcon bgColor={stat.bgColor}>
+                    <stat.icon size={24} color={stat.color} />
+                  </StatIcon>
+                </StatCardContent>
+              </StatCard>
+            </AnimatedDiv>
+          ))}
+        </StatsGrid>
 
-        <div style={styles.gridLayout}>
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>Recent Users</h3>
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
-                <thead style={styles.tableHead}>
-                  <tr>
-                    <th style={styles.tableHeaderCell}>Username</th>
-                    <th style={styles.tableHeaderCell}>Role</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUsers.length > 0 ? (
-                    recentUsers.map((user) => (
-                      <tr
-                        key={user._id}
-                        style={
-                          hoveredButton === `recent-user-row-${user._id}`
-                            ? { ...styles.tableRow, ...styles.tableRowHover }
-                            : styles.tableRow
-                        }
-                        onMouseEnter={() => setHoveredButton(`recent-user-row-${user._id}`)}
-                        onMouseLeave={() => setHoveredButton(null)}
-                      >
-                        <td style={styles.tableCell}>{user.username}</td>
-                        <td style={styles.tableCell}>
-                          <span
-                            style={{
-                              ...styles.badge,
-                              ...(user.role === "admin" ? styles.adminBadge : styles.userBadge),
-                            }}
-                          >
-                            {user.role || "user"}
-                          </span>
-                        </td>
+        <GridLayout>
+          <AnimatedDiv delay={400}>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <Users size={20} />
+                  Recent Users
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentUsers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <tr>
+                        <TableHeaderCell>Username</TableHeaderCell>
+                        <TableHeaderCell>Role</TableHeaderCell>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={2} style={{ ...styles.tableCell, textAlign: "center", color: "#6b7280" }}>
-                        No recent users
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    </TableHeader>
+                    <tbody>
+                      {recentUsers.map((user) => (
+                        <TableRow key={user._id}>
+                          <TableCell style={{ fontWeight: 500 }}>{user.username}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.role === "admin" ? "admin" : "user"}>
+                              {user.role || "user"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <EmptyState>
+                    <Users size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                    <p>No recent users</p>
+                  </EmptyState>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedDiv>
 
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>Recent Projects</h3>
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
-                <thead style={styles.tableHead}>
-                  <tr>
-                    <th style={styles.tableHeaderCell}>Name</th>
-                    <th style={styles.tableHeaderCell}>Owner</th>
-                    <th style={styles.tableHeaderCell}>Created At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentProjects.length > 0 ? (
-                    recentProjects.map((project) => (
-                      <tr
-                        key={project._id}
-                        style={
-                          hoveredButton === `recent-project-row-${project.id || project._id}`
-                            ? { ...styles.tableRow, ...styles.tableRowHover }
-                            : styles.tableRow
-                        }
-                        onMouseEnter={() => setHoveredButton(`recent-project-row-${project.id || project._id}`)}
-                        onMouseLeave={() => setHoveredButton(null)}
-                      >
-                        <td style={styles.tableCell}>{project.name}</td>
-                        <td style={styles.tableCell}>{project.user}</td>
-                        <td style={styles.tableCell}>{new Date(project.created_at).toLocaleDateString()}</td>
+          <AnimatedDiv delay={500}>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <FolderOpen size={20} />
+                  Recent Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentProjects.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <tr>
+                        <TableHeaderCell>Name</TableHeaderCell>
+                        <TableHeaderCell>Owner</TableHeaderCell>
+                        <TableHeaderCell>Created</TableHeaderCell>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} style={{ ...styles.tableCell, textAlign: "center", color: "#6b7280" }}>
-                        No recent projects
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+                    </TableHeader>
+                    <tbody>
+                      {recentProjects.map((project) => (
+                        <TableRow key={project._id}>
+                          <TableCell style={{ fontWeight: 500 }}>{project.name}</TableCell>
+                          <TableCell>{project.user}</TableCell>
+                          <TableCell>{new Date(project.created_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <EmptyState>
+                    <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                    <p>No recent projects</p>
+                  </EmptyState>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedDiv>
+        </GridLayout>
 
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Top Project Contributors</h3>
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead style={styles.tableHead}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Project Contributors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
                 <tr>
-                  <th style={styles.tableHeaderCell}>Username</th>
-                  <th style={styles.tableHeaderCell}>Number of Projects</th>
+                  <TableHeaderCell>Username</TableHeaderCell>
+                  <TableHeaderCell>Number of Projects</TableHeaderCell>
                 </tr>
-              </thead>
+              </TableHeader>
               <tbody>
                 {projectsStats.by_user && projectsStats.by_user.length > 0 ? (
                   projectsStats.by_user.map((item) => (
-                    <tr
-                      key={item._id}
-                      style={
-                        hoveredButton === `contributor-row-${item._id}`
-                          ? { ...styles.tableRow, ...styles.tableRowHover }
-                          : styles.tableRow
-                      }
-                      onMouseEnter={() => setHoveredButton(`contributor-row-${item._id}`)}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      <td style={styles.tableCell}>{item._id}</td>
-                      <td style={styles.tableCell}>{item.count}</td>
-                    </tr>
+                    <TableRow key={item._id}>
+                      <TableCell style={{ fontWeight: 500 }}>{item._id}</TableCell>
+                      <TableCell>{item.count}</TableCell>
+                    </TableRow>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={2} style={{ ...styles.tableCell, textAlign: "center", color: "#6b7280" }}>
+                  <TableRow>
+                    <TableCell colSpan={2} style={{ textAlign: "center", color: "#6b7280" }}>
                       No project contributors data available
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+            </Table>
+          </CardContent>
+        </Card>
+      </AnimatedDiv>
     )
   }
 
-  // Render the user creation form modal
-  const renderUserForm = () => {
-    if (!showUserForm) return null
+  const renderUsers = () => {
+    if (selectedUser) {
+      return (
+        <AnimatedDiv>
+          <BackButton onClick={() => setSelectedUser(null)}>
+            <ArrowLeft size={16} />
+            Back to users list
+          </BackButton>
+
+          <PageTitle>User Details: {selectedUser.username}</PageTitle>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>User Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+                <div>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Username</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedUser.username}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Email</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedUser.email || selectedUser.username}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Role</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      <Badge variant={selectedUser.role === "admin" ? "admin" : "user"}>
+                        {selectedUser.role || "user"}
+                      </Badge>
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                </div>
+                <div>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Created</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : "N/A"}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Created By</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedUser.created_by || "N/A"}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Last Updated</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {selectedUser.updated_at ? new Date(selectedUser.updated_at).toLocaleString() : "N/A"}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem" }}>
+                <Button variant="primary" onClick={() => handleStartEditUser(selectedUser)}>
+                  <Edit size={16} />
+                  Edit User
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    handleDeleteUser(selectedUser._id)
+                    setSelectedUser(null)
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete User
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </AnimatedDiv>
+      )
+    }
 
     return (
-      <div style={styles.modalOverlay}>
-        <div style={styles.modal}>
-          <h3 style={styles.modalTitle}>Create New User</h3>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="username">
-              Username/Email
-            </label>
-            <input
-              id="username"
-              type="text"
-              style={{
-                ...styles.input,
-                ...(focusedInput === "username" ? styles.inputFocus : {}),
-              }}
-              value={newUser.username}
-              onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-              placeholder="Enter username/email"
-              onFocus={() => setFocusedInput("username")}
-              onBlur={() => setFocusedInput(null)}
-            />
+      <AnimatedDiv>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+          <div>
+            <PageTitle>User Management</PageTitle>
+            <PageSubtitle>Manage system users and their permissions</PageSubtitle>
           </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              style={{
-                ...styles.input,
-                ...(focusedInput === "password" ? styles.inputFocus : {}),
-              }}
-              value={newUser.password}
-              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              placeholder="Password"
-              onFocus={() => setFocusedInput("password")}
-              onBlur={() => setFocusedInput(null)}
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="role">
-              Role
-            </label>
-            <select
-              id="role"
-              style={{
-                ...styles.select,
-                ...(focusedInput === "role" ? styles.selectFocus : {}),
-              }}
-              value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              onFocus={() => setFocusedInput("role")}
-              onBlur={() => setFocusedInput(null)}
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button
-              style={
-                hoveredButton === "cancel-user"
-                  ? { ...styles.button, ...styles.secondaryButton, ...styles.secondaryButtonHover }
-                  : { ...styles.button, ...styles.secondaryButton }
-              }
-              onClick={() => setShowUserForm(false)}
-              onMouseEnter={() => setHoveredButton("cancel-user")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Cancel
-            </button>
-            <button
-              style={
-                hoveredButton === "create-user"
-                  ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                  : { ...styles.button, ...styles.primaryButton }
-              }
-              onClick={handleCreateUser}
-              disabled={!newUser.username || !newUser.password}
-              onMouseEnter={() => setHoveredButton("create-user")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Create User
-            </button>
-          </div>
+          <Button variant="primary" onClick={() => setShowUserForm(true)}>
+            <Plus size={16} />
+            Add New User
+          </Button>
         </div>
-      </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <tr>
+                  <TableHeaderCell>Username</TableHeaderCell>
+                  <TableHeaderCell>Email</TableHeaderCell>
+                  <TableHeaderCell>Role</TableHeaderCell>
+                  <TableHeaderCell>Created</TableHeaderCell>
+                  <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
+                </tr>
+              </TableHeader>
+              <tbody>
+                {users.length === 0 ? (
+                  <tr>
+                    <TableCell colSpan={5}>
+                      <EmptyState>
+                        <Users size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                        <p>No users found. Create your first user to get started.</p>
+                      </EmptyState>
+                    </TableCell>
+                  </tr>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user._id}>
+                      <TableCell style={{ fontWeight: 500 }}>{user.username}</TableCell>
+                      <TableCell>{user.email || user.username}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "admin" ? "admin" : "user"}>
+                          {user.role || "user"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.created_at ? new Date(user.created_at).toLocaleString() : "N/A"}
+                      </TableCell>
+                      <TableCell style={{ textAlign: "right" }}>
+                        <ButtonGroup>
+                          <Button variant="outline" size="sm" onClick={() => handleViewUserDetails(user._id)}>
+                            <Eye size={14} />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleStartEditUser(user)}>
+                            <Edit size={14} />
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => handleDeleteUser(user._id)}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </ButtonGroup>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </CardContent>
+        </Card>
+      </AnimatedDiv>
     )
   }
 
-  // Render the edit user form modal
-  const renderEditUserForm = () => {
-    if (!showEditForm || !editUser) return null
+  const renderProjects = () => {
+    if (selectedProject) {
+      return (
+        <AnimatedDiv>
+          <BackButton onClick={() => setSelectedProject(null)}>
+            <ArrowLeft size={16} />
+            Back to projects list
+          </BackButton>
+
+          <PageTitle>Project: {selectedProject.name}</PageTitle>
+          <PageSubtitle>
+            Created by {selectedProject.user} on {new Date(selectedProject.created_at).toLocaleDateString()}
+          </PageSubtitle>
+
+          <ProjectDetailContainer>
+            <ProjectSidebar>
+              <ProjectInfoCard>
+                <CardHeader>
+                  <CardTitle>Project Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Owner</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.user}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Created</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {new Date(selectedProject.created_at).toLocaleDateString()}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Last Updated</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Requirements</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.requirements?.length || 0}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Collaborators</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.collaborators?.length || 0}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Language</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.language || "Not specified"}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>AI Model</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.ai_model || "Default"}</ProjectInfoValue>
+                  </ProjectInfoItem>
+
+                  <div style={{ marginTop: "1.25rem" }}>
+                    <Button
+                      variant="danger"
+                      style={{ width: "100%" }}
+                      onClick={() => {
+                        handleDeleteProject(selectedProject.id)
+                        setSelectedProject(null)
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete Project
+                    </Button>
+                  </div>
+                </CardContent>
+              </ProjectInfoCard>
+
+              {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
+                <ProjectInfoCard>
+                  <CardHeader>
+                    <CardTitle>Collaborators ({selectedProject.collaborator_details.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedProject.collaborator_details.map((collab) => (
+                      <div key={collab._id} style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        padding: "0.75rem 0", 
+                        borderBottom: "1px solid #f3f4f6" 
+                      }}>
+                        <div style={{
+                          width: "2rem",
+                          height: "2rem", 
+                          borderRadius: "50%",
+                          backgroundColor: "#e5e7eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: "0.75rem",
+                          fontSize: "0.875rem",
+                          fontWeight: "600",
+                          color: "#4b5563"
+                        }}>
+                          {collab.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#1f2937" }}>
+                            {collab.username}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            {collab.email}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                          {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </ProjectInfoCard>
+              )}
+            </ProjectSidebar>
+
+            <ProjectContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Context</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div style={{
+                    whiteSpace: "pre-wrap",
+                    padding: "1rem",
+                    backgroundColor: "#f9fafb",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #e5e7eb",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.5",
+                    color: "#4b5563",
+                  }}>
+                    {selectedProject.context || "No context provided for this project."}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Requirements ({selectedProject.requirements.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedProject.requirements.map((req) => (
+                      <RequirementCard key={req.id}>
+                        <RequirementHeader
+                          onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
+                        >
+                          <RequirementTitle>{req.title}</RequirementTitle>
+                          <RequirementBadges>
+                            <Badge 
+                              style={{
+                                backgroundColor: getCategoryColor(req.category),
+                                color: getCategoryTextColor(req.category),
+                                border: "none"
+                              }}
+                            >
+                              {getReadableCategory(req.category)}
+                            </Badge>
+                            <Badge 
+                              style={{
+                                backgroundColor: getPriorityColor(req.priority),
+                                color: getPriorityTextColor(req.priority),
+                                border: "none"
+                              }}
+                            >
+                              {getReadablePriority(req.priority)}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              {expandedRequirement === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </Button>
+                          </RequirementBadges>
+                        </RequirementHeader>
+                        {expandedRequirement === req.id && (
+                          <RequirementContent>
+                            <p>{req.description}</p>
+                            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
+                              <Badge style={{
+                                backgroundColor: "rgba(107, 114, 128, 0.1)",
+                                color: "#6b7280",
+                                border: "none"
+                              }}>
+                                Status: {getReadableStatus(req.status)}
+                              </Badge>
+                              {req.priority_auto_generated && (
+                                <Badge style={{
+                                  backgroundColor: "rgba(107, 114, 128, 0.1)",
+                                  color: "#6b7280",
+                                  border: "none"
+                                }}>
+                                  Auto-generated priority
+                                </Badge>
+                              )}
+                            </div>
+                          </RequirementContent>
+                        )}
+                      </RequirementCard>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent>
+                    <EmptyState>
+                      <FileText size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                      <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                        No Requirements Found
+                      </h3>
+                      <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                        This project doesn't have any requirements yet. Requirements are used to define the functionality and features of the project.
+                      </p>
+                    </EmptyState>
+                  </CardContent>
+                </Card>
+              )}
+            </ProjectContent>
+          </ProjectDetailContainer>
+        </AnimatedDiv>
+      )
+    }
 
     return (
-      <div style={styles.modalOverlay}>
-        <div style={styles.modal}>
-          <h3 style={styles.modalTitle}>Edit User: {editUser.username}</h3>
+      <AnimatedDiv>
+        <PageTitle>Project Management</PageTitle>
+        <PageSubtitle>Manage and monitor all system projects</PageSubtitle>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="edit-role">
-              Role
-            </label>
-            <select
-              id="edit-role"
-              style={{
-                ...styles.select,
-                ...(focusedInput === "edit-role" ? styles.selectFocus : {}),
-              }}
-              value={editUser.role}
-              onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-              onFocus={() => setFocusedInput("edit-role")}
-              onBlur={() => setFocusedInput(null)}
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="edit-password">
-              New Password (leave blank to keep current)
-            </label>
-            <input
-              id="edit-password"
-              type="password"
-              style={{
-                ...styles.input,
-                ...(focusedInput === "edit-password" ? styles.inputFocus : {}),
-              }}
-              value={editUser.newPassword}
-              onChange={(e) => setEditUser({ ...editUser, newPassword: e.target.value })}
-              placeholder="New password (optional)"
-              onFocus={() => setFocusedInput("edit-password")}
-              onBlur={() => setFocusedInput(null)}
-            />
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button
-              style={
-                hoveredButton === "cancel-edit"
-                  ? { ...styles.button, ...styles.secondaryButton, ...styles.secondaryButtonHover }
-                  : { ...styles.button, ...styles.secondaryButton }
-              }
-              onClick={() => {
-                setShowEditForm(false)
-                setEditUser(null)
-              }}
-              onMouseEnter={() => setHoveredButton("cancel-edit")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Cancel
-            </button>
-            <button
-              style={
-                hoveredButton === "save-edit"
-                  ? { ...styles.button, ...styles.primaryButton, ...styles.primaryButtonHover }
-                  : { ...styles.button, ...styles.primaryButton }
-              }
-              onClick={handleEditUser}
-              onMouseEnter={() => setHoveredButton("save-edit")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>All Projects</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <tr>
+                  <TableHeaderCell>Name</TableHeaderCell>
+                  <TableHeaderCell>Owner</TableHeaderCell>
+                  <TableHeaderCell>Created</TableHeaderCell>
+                  <TableHeaderCell>Requirements</TableHeaderCell>
+                  <TableHeaderCell>Collaborators</TableHeaderCell>
+                  <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
+                </tr>
+              </TableHeader>
+              <tbody>
+                {projects.length === 0 ? (
+                  <tr>
+                    <TableCell colSpan={6}>
+                      <EmptyState>
+                        <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                        <p>No projects found.</p>
+                      </EmptyState>
+                    </TableCell>
+                  </tr>
+                ) : (
+                  projects.map((project) => (
+                    <TableRow key={project._id}>
+                      <TableCell style={{ fontWeight: 500 }}>{project.name}</TableCell>
+                      <TableCell>{project.user}</TableCell>
+                      <TableCell>{new Date(project.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge>{project.requirements?.length || 0}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge>{project.collaborators?.length || 0}</Badge>
+                      </TableCell>
+                      <TableCell style={{ textAlign: "right" }}>
+                        <ButtonGroup>
+                          <Button variant="primary" size="sm" onClick={() => handleViewProjectDetails(project.id)}>
+                            <Eye size={14} />
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => handleDeleteProject(project.id)}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </ButtonGroup>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </CardContent>
+        </Card>
+      </AnimatedDiv>
     )
   }
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerContainer}>
-          <h1 style={styles.logo}>Admin Panel - AI Test Case Generator</h1>
-          <div style={styles.navLinks}>
-            <button
-              style={{
-                ...styles.navLink,
-                ...(activeTab === "dashboard" ? styles.navLinkActive : {}),
-                ...(hoveredButton === "dashboard-tab" && activeTab !== "dashboard" ? styles.navLinkHover : {}),
-              }}
-              onClick={() => setActiveTab("dashboard")}
-              onMouseEnter={() => setHoveredButton("dashboard-tab")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
+    <Container>
+      <Header>
+        <HeaderContainer>
+          <Logo>Admin Panel - AI Test Case Generator</Logo>
+          <NavContainer>
+            <NavButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>
               Dashboard
-            </button>
-            <button
-              style={{
-                ...styles.navLink,
-                ...(activeTab === "users" ? styles.navLinkActive : {}),
-                ...(hoveredButton === "users-tab" && activeTab !== "users" ? styles.navLinkHover : {}),
-              }}
-              onClick={() => setActiveTab("users")}
-              onMouseEnter={() => setHoveredButton("users-tab")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
+            </NavButton>
+            <NavButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>
               Users
-            </button>
-            <button
-              style={{
-                ...styles.navLink,
-                ...(activeTab === "projects" ? styles.navLinkActive : {}),
-                ...(hoveredButton === "projects-tab" && activeTab !== "projects" ? styles.navLinkHover : {}),
-              }}
-              onClick={() => setActiveTab("projects")}
-              onMouseEnter={() => setHoveredButton("projects-tab")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
+            </NavButton>
+            <NavButton active={activeTab === "projects"} onClick={() => setActiveTab("projects")}>
               Projects
-            </button>
-            <button
-              style={{
-                ...styles.navLink,
-                ...(hoveredButton === "logout" ? styles.navLinkHover : {}),
-              }}
-              onClick={handleLogout}
-              onMouseEnter={() => setHoveredButton("logout")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+            </NavButton>
 
-      <main style={styles.mainContent}>
-        <div style={styles.mainContainer}>
-          {isLoading ? (
-            <div style={styles.loadingContainer}>
-              <div style={styles.loadingSpinner}></div>
-              <div style={styles.loadingText}>Loading data...</div>
-            </div>
-          ) : error ? (
-            <div style={styles.errorContainer}>
-              <ExclamationIcon />
-              <p style={{ margin: 0 }}>{error}</p>
-            </div>
-          ) : (
-            <>
-              {activeTab === "dashboard" && renderDashboard()}
-              {activeTab === "users" && renderUsers()}
-              {activeTab === "projects" && renderProjects()}
-            </>
-          )}
-        </div>
-      </main>
+            <NavButton onClick={handleLogout}>Logout</NavButton>
+          </NavContainer>
+        </HeaderContainer>
+      </Header>
 
-      {/* Modal for creating a new user */}
-      {renderUserForm()}
+      <MainContent>
+        {isLoading ? (
+          <LoadingContainer>
+            <LoadingSpinner />
+            <p style={{ color: "#6b7280", fontWeight: 500 }}>Loading data...</p>
+          </LoadingContainer>
+        ) : error ? (
+          <ErrorAlert>
+            <AlertTriangle size={20} />
+            <p style={{ margin: 0 }}>{error}</p>
+          </ErrorAlert>
+        ) : (
+          <>
+            {activeTab === "dashboard" && renderDashboard()}
+            {activeTab === "users" && renderUsers()}
+            {activeTab === "projects" && renderProjects()}
+          </>
+        )}
+      </MainContent>
 
-      {/* Modal for editing a user */}
-      {renderEditUserForm()}
-    </div>
+      {/* Create User Modal */}
+      {showUserForm && (
+        <Modal onClick={() => setShowUserForm(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Create New User</ModalTitle>
+            <FormGroup>
+              <Label htmlFor="username">Username/Email</Label>
+              <Input
+                id="username"
+                type="text"
+                value={newUser.username}
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                placeholder="Enter username/email"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Password"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label htmlFor="role">Role</Label>
+              <Select
+                id="role"
+                value={newUser.role}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+              >
+                <option value="user">User</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </Select>
+            </FormGroup>
+            <ModalFooter>
+              <Button variant="outline" onClick={() => setShowUserForm(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleCreateUser} disabled={!newUser.username || !newUser.password}>
+                Create User
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditForm && editUser && (
+        <Modal onClick={() => setShowEditForm(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Edit User: {editUser.username}</ModalTitle>
+            <FormGroup>
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                id="edit-role"
+                value={editUser.role}
+                onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
+              >
+                <option value="user">User</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </Select>
+            </FormGroup>
+            <FormGroup>
+              <Label htmlFor="edit-password">New Password (leave blank to keep current)</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={editUser.newPassword || ""}
+                onChange={(e) => setEditUser({ ...editUser, newPassword: e.target.value })}
+                placeholder="New password (optional)"
+              />
+            </FormGroup>
+            <ModalFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditForm(false)
+                  setEditUser(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleEditUser}>
+                Save Changes
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+    </Container>
   )
 }
-
-export default AdminPage
