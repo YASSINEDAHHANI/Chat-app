@@ -279,6 +279,32 @@ const styles = {
     marginBottom: "1.5rem",
   },
 
+  // AI Model Badge Styles - NEW
+  aiModelBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.25rem",
+    padding: "0.25rem 0.5rem",
+    fontSize: "0.75rem",
+    fontWeight: "500",
+    borderRadius: "0.375rem",
+    border: "1px solid",
+  },
+  claudeBadge: {
+    backgroundColor: "#f3f4ff",
+    color: "#7c3aed",
+    borderColor: "#c4b5fd",
+  },
+  localBadge: {
+    backgroundColor: "#eff6ff",
+    color: "#2563eb",
+    borderColor: "#93c5fd",
+  },
+  aiModelIcon: {
+    width: "0.875rem",
+    height: "0.875rem",
+  },
+
   // Modal
   modal: {
     position: "fixed",
@@ -564,6 +590,10 @@ function Dashboard({ user }) {
   const [hoveredButton, setHoveredButton] = useState(null)
   const [focusedInput, setFocusedInput] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [userSearchQuery, setUserSearchQuery] = useState("")
+
+  // NEW: State for project AI model info
+  const [projectModels, setProjectModels] = useState({})
 
   // User role and permissions
   const [userRole, setUserRole] = useState("user")
@@ -609,13 +639,86 @@ function Dashboard({ user }) {
     fetchProjects()
   }, [])
 
+  // NEW: Fetch AI model info for each project
+  const fetchProjectModelInfo = async (projectId) => {
+    try {
+      console.log(`🔍 Fetching AI model info for project: ${projectId}`)
+      
+      // Try the LLM settings endpoint first
+      try {
+        const llmResponse = await api.get(`/project_llm_settings/${projectId}`)
+        console.log(`📡 LLM Settings Response for project ${projectId}:`, llmResponse.data)
+        
+        if (llmResponse.data && llmResponse.data.effective_service) {
+          const modelInfo = {
+            effective_service: llmResponse.data.effective_service,
+            service_display_name: llmResponse.data.effective_service === 'claude' ? 'Claude AI' : 'Local RAG'
+          }
+          console.log(`✅ Setting model info for ${projectId}:`, modelInfo)
+          setProjectModels(prev => ({
+            ...prev,
+            [projectId]: modelInfo
+          }))
+          return // Success, exit early
+        }
+      } catch (llmError) {
+        console.log(`⚠️ LLM settings endpoint failed for ${projectId}:`, llmError.response?.status)
+      }
+      
+      // Fallback: Try the regular project endpoint
+      const response = await api.get(`/projects/${projectId}`)
+      console.log(`📡 Regular Project Response for project ${projectId}:`, response.data)
+      
+      const projectData = response.data.project || response.data
+      
+      if (projectData && projectData.effective_service) {
+        const modelInfo = {
+          effective_service: projectData.effective_service,
+          service_display_name: projectData.service_display_name || 
+            (projectData.effective_service === 'claude' ? 'Claude AI' : 'Local RAG')
+        }
+        console.log(`✅ Setting model info for ${projectId}:`, modelInfo)
+        setProjectModels(prev => ({
+          ...prev,
+          [projectId]: modelInfo
+        }))
+      } else {
+        console.log(`⚠️ No effective_service found for project ${projectId} - using default`)
+        setProjectModels(prev => ({
+          ...prev,
+          [projectId]: {
+            effective_service: 'local',
+            service_display_name: 'Local RAG'
+          }
+        }))
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching model info for project ${projectId}:`, error)
+      
+      // If all attempts fail, set default to local
+      setProjectModels(prev => ({
+        ...prev,
+        [projectId]: {
+          effective_service: 'local',
+          service_display_name: 'Local RAG'
+        }
+      }))
+    }
+  }
+
   // Fetch projects based on user role
   const fetchProjects = async () => {
     try {
       const response = await api.get("/projects")
       console.log("Fetched projects:", response.data)
-      setProjects(response.data.projects || [])
+      const fetchedProjects = response.data.projects || []
+      setProjects(fetchedProjects)
       setCanCreateProjects(response.data.can_create_projects || false)
+
+      // NEW: Fetch AI model info for each project
+      fetchedProjects.forEach(project => {
+        fetchProjectModelInfo(project.id)
+      })
     } catch (error) {
       console.error("Error fetching projects:", error)
     }
@@ -624,10 +727,10 @@ function Dashboard({ user }) {
   // Fetch available users for project assignment (managers only)
   const fetchAvailableUsers = async () => {
     if (!isManager && !isAdmin) return
-    
+
     setIsLoadingUsers(true)
     try {
-const response = await api.get("/manager/users")
+      const response = await api.get("/manager/users")
       setAvailableUsers(response.data.users || [])
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -647,15 +750,15 @@ const response = await api.get("/manager/users")
       const projectData = {
         name: newProjectName,
         context: projectContext,
-        assigned_users: selectedUsers // Only for managers
+        assigned_users: selectedUsers, // Only for managers
       }
 
       console.log("Creating project with data:", projectData)
 
       // Use different endpoint for managers who can assign users
-      const endpoint = (isManager || isAdmin) ? "/manager/projects" : "/projects"
+      const endpoint = isManager || isAdmin ? "/manager/projects" : "/projects"
       const response = await api.post(endpoint, projectData)
-      
+
       console.log("Project created successfully:", response.data)
       const newProject = response.data.project
 
@@ -686,13 +789,13 @@ const response = await api.get("/manager/users")
     if (checked) {
       setSelectedUsers([...selectedUsers, username])
     } else {
-      setSelectedUsers(selectedUsers.filter(user => user !== username))
+      setSelectedUsers(selectedUsers.filter((user) => user !== username))
     }
   }
 
   // Remove selected user
   const removeSelectedUser = (username) => {
-    setSelectedUsers(selectedUsers.filter(user => user !== username))
+    setSelectedUsers(selectedUsers.filter((user) => user !== username))
   }
 
   const handleLogout = async () => {
@@ -717,6 +820,25 @@ const response = await api.get("/manager/users")
     }
   }
 
+  // NEW: Helper functions for AI model display
+  const getAIModelIcon = (effectiveService) => {
+    if (effectiveService === 'claude') {
+      return <KeyIcon style={styles.aiModelIcon} />
+    }
+    return <CpuIcon style={styles.aiModelIcon} />
+  }
+
+  const getAIModelBadgeStyle = (effectiveService) => {
+    if (effectiveService === 'claude') {
+      return { ...styles.aiModelBadge, ...styles.claudeBadge }
+    }
+    return { ...styles.aiModelBadge, ...styles.localBadge }
+  }
+
+  const getAIModelDisplayName = (effectiveService) => {
+    return effectiveService === 'claude' ? 'Claude AI' : 'Local RAG'
+  }
+
   // Filter projects based on search query
   const filteredProjects = projects.filter((project) => {
     if (!searchQuery) return true
@@ -727,33 +849,33 @@ const response = await api.get("/manager/users")
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerContainer}>
-          <img src={logoImage} alt="TestGen Logo" style={styles.logo} />
+          <img src={logoImage || "/placeholder.svg"} alt="TestGen Logo" style={styles.logo} />
           <div style={styles.navLinks}>
             {isAdmin && (
-                    <button
-                      style={styles.navLink}
-                      onClick={() => navigate("/admin")}
-                      onMouseEnter={() => setHoveredButton('admin')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      Admin Panel
-                    </button>
-                  )}
+              <button
+                style={styles.navLink}
+                onClick={() => navigate("/admin")}
+                onMouseEnter={() => setHoveredButton("admin")}
+                onMouseLeave={() => setHoveredButton(null)}
+              >
+                Admin Panel
+              </button>
+            )}
 
-                  {isManager && !isAdmin && (
-                    <button
-                      style={styles.navLink}
-                      onClick={() => navigate("/manager")}
-                      onMouseEnter={() => setHoveredButton('manager')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      Manager Panel
-                    </button>
-                  )}
+            {isManager && !isAdmin && (
+              <button
+                style={styles.navLink}
+                onClick={() => navigate("/manager")}
+                onMouseEnter={() => setHoveredButton("manager")}
+                onMouseLeave={() => setHoveredButton(null)}
+              >
+                Manager Panel
+              </button>
+            )}
             <button
               style={styles.navLink}
               onClick={handleLogout}
-              onMouseEnter={() => setHoveredButton('logout')}
+              onMouseEnter={() => setHoveredButton("logout")}
               onMouseLeave={() => setHoveredButton(null)}
             >
               Logout
@@ -767,7 +889,7 @@ const response = await api.get("/manager/users")
           <div style={styles.titleSection}>
             <h2 style={styles.pageTitle}>Projects</h2>
           </div>
-          
+
           {canCreateProjects ? (
             <button
               onClick={() => {
@@ -776,8 +898,12 @@ const response = await api.get("/manager/users")
                   fetchAvailableUsers()
                 }
               }}
-              style={hoveredButton === 'newProject' ? {...styles.newProjectButton, ...styles.newProjectButtonHover} : styles.newProjectButton}
-              onMouseEnter={() => setHoveredButton('newProject')}
+              style={
+                hoveredButton === "newProject"
+                  ? { ...styles.newProjectButton, ...styles.newProjectButtonHover }
+                  : styles.newProjectButton
+              }
+              onMouseEnter={() => setHoveredButton("newProject")}
               onMouseLeave={() => setHoveredButton(null)}
             >
               <PlusIcon style={styles.buttonIcon} />
@@ -794,7 +920,8 @@ const response = await api.get("/manager/users")
         {/* Info alert for regular users */}
         {!canCreateProjects && userRole === "user" && (
           <div style={styles.infoAlert}>
-            <strong>Info:</strong> Only managers can create projects. You have access to projects where you are assigned as a collaborator.
+            <strong>Info:</strong> Only managers can create projects. You have access to projects where you are assigned
+            as a collaborator.
           </div>
         )}
 
@@ -806,8 +933,10 @@ const response = await api.get("/manager/users")
               placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={focusedInput === 'search' ? {...styles.searchInput, ...styles.searchInputFocus} : styles.searchInput}
-              onFocus={() => setFocusedInput('search')}
+              style={
+                focusedInput === "search" ? { ...styles.searchInput, ...styles.searchInputFocus } : styles.searchInput
+              }
+              onFocus={() => setFocusedInput("search")}
               onBlur={() => setFocusedInput(null)}
             />
           </div>
@@ -821,8 +950,8 @@ const response = await api.get("/manager/users")
               <div style={styles.modalHeader}>
                 <h3 style={styles.modalTitle}>Create New Project</h3>
                 <p style={styles.modalDesc}>
-                  {isManager || isAdmin 
-                    ? "Create a project and assign users to collaborate on it." 
+                  {isManager || isAdmin
+                    ? "Create a project and assign users to collaborate on it."
                     : "Create a new project for test case generation."}
                 </p>
               </div>
@@ -833,11 +962,11 @@ const response = await api.get("/manager/users")
                 </label>
                 <input
                   id="project-name"
-                  style={focusedInput === 'projectName' ? {...styles.input, ...styles.inputFocus} : styles.input}
+                  style={focusedInput === "projectName" ? { ...styles.input, ...styles.inputFocus } : styles.input}
                   placeholder="Enter project name"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
-                  onFocus={() => setFocusedInput('projectName')}
+                  onFocus={() => setFocusedInput("projectName")}
                   onBlur={() => setFocusedInput(null)}
                 />
               </div>
@@ -849,55 +978,88 @@ const response = await api.get("/manager/users")
                 <textarea
                   id="project-context"
                   rows={4}
-                  style={focusedInput === 'projectContext' ? {...styles.textarea, ...styles.textareaFocus} : styles.textarea}
+                  style={
+                    focusedInput === "projectContext"
+                      ? { ...styles.textarea, ...styles.textareaFocus }
+                      : styles.textarea
+                  }
                   placeholder="Describe the project's functional requirements..."
                   value={projectContext}
                   onChange={(e) => setProjectContext(e.target.value)}
-                  onFocus={() => setFocusedInput('projectContext')}
+                  onFocus={() => setFocusedInput("projectContext")}
                   onBlur={() => setFocusedInput(null)}
                 />
               </div>
-                      
+
               {/* User Assignment Section for Managers */}
               {(isManager || isAdmin) && (
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Assign Users</label>
-                  <p style={styles.helperText}>
-                    Select users to assign as collaborators on this project.
-                  </p>
-                  
+                  <p style={styles.helperText}>Select users to assign as collaborators on this project.</p>
+
                   {isLoadingUsers ? (
                     <div style={styles.loadingContainer}>
                       <LoadingSpinner style={styles.loadingSpinner} />
                       <span style={styles.loadingText}>Loading users...</span>
                     </div>
                   ) : (
-                    <div style={styles.userSelectionContainer}>
-                      {availableUsers.length === 0 ? (
-                        <p style={styles.emptyUsersText}>
-                          No users available for assignment
-                        </p>
-                      ) : (
-                        availableUsers.map((user) => (
-                          <div 
-                            key={user.username} 
-                            style={styles.userCheckbox}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = "rgba(59, 130, 246, 0.05)"}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = "transparent"}
-                          >
-                            <input
-                              type="checkbox"
-                              style={styles.checkbox}
-                              checked={selectedUsers.includes(user.username)}
-                              onChange={(e) => handleUserSelection(user.username, e.target.checked)}
-                            />
-                            <span style={styles.userLabel}>
-                              {user.email || user.username}
-                            </span>
-                          </div>
-                        ))
+                    <>
+                      {/* User Search Bar */}
+                      {availableUsers.length > 0 && (
+                        <div style={{ ...styles.searchContainer, marginBottom: "0.75rem" }}>
+                          <SearchIcon style={styles.searchIcon} />
+                          <input
+                            type="text"
+                            placeholder="Search users..."
+                            value={userSearchQuery}
+                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                            style={
+                              focusedInput === "userSearch"
+                                ? { ...styles.searchInput, ...styles.searchInputFocus }
+                                : styles.searchInput
+                            }
+                            onFocus={() => setFocusedInput("userSearch")}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </div>
                       )}
-                    </div>
+
+                      <div style={styles.userSelectionContainer}>
+                        {availableUsers.length === 0 ? (
+                          <p style={styles.emptyUsersText}>No users available for assignment</p>
+                        ) : (
+                          (() => {
+                            const filteredUsers = availableUsers.filter(
+                              (user) =>
+                                !userSearchQuery ||
+                                (user.email && user.email.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
+                                (user.username && user.username.toLowerCase().includes(userSearchQuery.toLowerCase())),
+                            )
+
+                            return filteredUsers.length === 0 ? (
+                              <p style={styles.emptyUsersText}>No users found matching "{userSearchQuery}"</p>
+                            ) : (
+                              filteredUsers.map((user) => (
+                                <div
+                                  key={user.username}
+                                  style={styles.userCheckbox}
+                                  onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.05)")}
+                                  onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    style={styles.checkbox}
+                                    checked={selectedUsers.includes(user.username)}
+                                    onChange={(e) => handleUserSelection(user.username, e.target.checked)}
+                                  />
+                                  <span style={styles.userLabel}>{user.email || user.username}</span>
+                                </div>
+                              ))
+                            )
+                          })()
+                        )}
+                      </div>
+                    </>
                   )}
 
                   {/* Display selected users */}
@@ -910,8 +1072,8 @@ const response = await api.get("/manager/users")
                             type="button"
                             style={styles.removeUserButton}
                             onClick={() => removeSelectedUser(username)}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)"}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = "transparent"}
+                            onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
+                            onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
                           >
                             ×
                           </button>
@@ -927,24 +1089,35 @@ const response = await api.get("/manager/users")
                 <div style={styles.modalFooterButtons}>
                   <button
                     type="button"
-                    style={hoveredButton === 'cancel' ? {...styles.outlineButton, ...styles.outlineButtonHover} : styles.outlineButton}
+                    style={
+                      hoveredButton === "cancel"
+                        ? { ...styles.outlineButton, ...styles.outlineButtonHover }
+                        : styles.outlineButton
+                    }
                     onClick={() => {
                       setIsDialogOpen(false)
                       setNewProjectName("")
                       setProjectContext("")
                       setSelectedUsers([])
+                      setUserSearchQuery("")
                     }}
-                    onMouseEnter={() => setHoveredButton('cancel')}
+                    onMouseEnter={() => setHoveredButton("cancel")}
                     onMouseLeave={() => setHoveredButton(null)}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    style={!newProjectName.trim() ? styles.primaryButtonDisabled : (hoveredButton === 'create' ? {...styles.primaryButton, ...styles.primaryButtonHover} : styles.primaryButton)}
+                    style={
+                      !newProjectName.trim()
+                        ? styles.primaryButtonDisabled
+                        : hoveredButton === "create"
+                          ? { ...styles.primaryButton, ...styles.primaryButtonHover }
+                          : styles.primaryButton
+                    }
                     onClick={handleCreateProject}
                     disabled={!newProjectName.trim()}
-                    onMouseEnter={() => setHoveredButton('create')}
+                    onMouseEnter={() => setHoveredButton("create")}
                     onMouseLeave={() => setHoveredButton(null)}
                   >
                     Create Project
@@ -962,9 +1135,9 @@ const response = await api.get("/manager/users")
               <FolderOpenIcon style={styles.emptyIcon} />
               <h3 style={styles.emptyTitle}>No projects found</h3>
               <p style={styles.emptyText}>
-                {searchQuery 
-                  ? "Try a different search term." 
-                  : userRole === "user" 
+                {searchQuery
+                  ? "Try a different search term."
+                  : userRole === "user"
                     ? "You haven't been assigned to any projects yet. Contact your manager if you need access to projects."
                     : "Start by creating a new project."}
               </p>
@@ -977,8 +1150,12 @@ const response = await api.get("/manager/users")
                       fetchAvailableUsers()
                     }
                   }}
-                  style={hoveredButton === 'emptyNew' ? {...styles.newProjectButton, ...styles.newProjectButtonHover} : styles.newProjectButton}
-                  onMouseEnter={() => setHoveredButton('emptyNew')}
+                  style={
+                    hoveredButton === "emptyNew"
+                      ? { ...styles.newProjectButton, ...styles.newProjectButtonHover }
+                      : styles.newProjectButton
+                  }
+                  onMouseEnter={() => setHoveredButton("emptyNew")}
                   onMouseLeave={() => setHoveredButton(null)}
                 >
                   <PlusIcon style={styles.buttonIcon} />
@@ -987,55 +1164,83 @@ const response = await api.get("/manager/users")
               )}
             </div>
           ) : (
-            filteredProjects.map((project) => (
-              <div
-                key={project.id}
-                style={hoveredCard === project.id ? {...styles.projectCard, ...styles.cardHover} : styles.projectCard}
-                onClick={() => navigate(`/project/${project.id}`)}
-                onMouseEnter={() => setHoveredCard(project.id)}
-                onMouseLeave={() => setHoveredCard(null)}
-              >
-                <div style={styles.cardHeader}>
-                  <h3 style={styles.cardTitle}>{project.name}</h3>
-                  <button 
-                    style={hoveredButton === `menu-${project.id}` ? {...styles.cardMenuButton, ...styles.cardMenuButtonHover} : styles.cardMenuButton}
-                    onMouseEnter={() => setHoveredButton(`menu-${project.id}`)}
-                    onMouseLeave={() => setHoveredButton(null)}
-                  >
-                    <DotsIcon />
-                  </button>
-                </div>
-                
-                <div style={styles.cardContent}>
-                  <div style={styles.cardRow}>
-                    <div style={styles.cardItem}>
-                      <CalendarIcon style={styles.cardIcon} />
-                      {new Date(project.created_at).toISOString().split("T")[0]}
+            filteredProjects.map((project) => {
+              // NEW: Get AI model info for this project
+              const modelInfo = projectModels[project.id]
+              
+              return (
+                <div
+                  key={project.id}
+                  style={hoveredCard === project.id ? { ...styles.projectCard, ...styles.cardHover } : styles.projectCard}
+                  onClick={() => navigate(`/project/${project.id}`)}
+                  onMouseEnter={() => setHoveredCard(project.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div style={styles.cardHeader}>
+                    <h3 style={styles.cardTitle}>{project.name}</h3>
+                    <button
+                      style={
+                        hoveredButton === `menu-${project.id}`
+                          ? { ...styles.cardMenuButton, ...styles.cardMenuButtonHover }
+                          : styles.cardMenuButton
+                      }
+                      onMouseEnter={() => setHoveredButton(`menu-${project.id}`)}
+                      onMouseLeave={() => setHoveredButton(null)}
+                    >
+                      <DotsIcon />
+                    </button>
+                  </div>
+
+                  <div style={styles.cardContent}>
+                    <div style={styles.cardRow}>
+                      <div style={styles.cardItem}>
+                        <CalendarIcon style={styles.cardIcon} />
+                        {new Date(project.created_at).toISOString().split("T")[0]}
+                      </div>
+                      <div style={styles.cardItem}>
+                        <DocumentIcon style={styles.cardIcon} />
+                        {project.test_count || 0} tests
+                      </div>
                     </div>
-                    <div style={styles.cardItem}>
-                      <DocumentIcon style={styles.cardIcon} />
-                      {project.test_count || 0} tests
+                    <div style={styles.cardRow}>
+                      <div style={styles.cardItem}>
+                        <UsersIcon style={styles.cardIcon} />
+                        {project.collaborators?.length || 0} collaborators
+                      </div>
+                      {/* NEW: AI Model Badge */}
+                      {modelInfo ? (
+                        <div style={getAIModelBadgeStyle(modelInfo.effective_service)}>
+                          {getAIModelIcon(modelInfo.effective_service)}
+                          {getAIModelDisplayName(modelInfo.effective_service)}
+                        </div>
+                      ) : (
+                        // Show default badge while loading or if API call failed
+                        <div style={getAIModelBadgeStyle('local')}>
+                          {getAIModelIcon('local')}
+                          {getAIModelDisplayName('local')}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div style={styles.cardRow}>
-                    <div style={styles.cardItem}>
-                      <UsersIcon style={styles.cardIcon} />
-                      {project.collaborators?.length || 0} collaborators
+
+                  <div style={styles.cardFooter}>
+                    <div
+                      style={
+                        project.is_owner
+                          ? { ...styles.statusBadge, ...styles.ownerBadge }
+                          : { ...styles.statusBadge, ...styles.collaboratorBadge }
+                      }
+                    >
+                      {project.is_owner ? "Owner" : "Collaborator"}
+                    </div>
+                    <div style={styles.lastUpdated}>
+                      <ClockIcon style={styles.lastUpdatedIcon} />
+                      Last updated 2 days ago
                     </div>
                   </div>
                 </div>
-                
-                <div style={styles.cardFooter}>
-                  <div style={project.is_owner ? {...styles.statusBadge, ...styles.ownerBadge} : {...styles.statusBadge, ...styles.collaboratorBadge}}>
-                    {project.is_owner ? "Owner" : "Collaborator"}
-                  </div>
-                  <div style={styles.lastUpdated}>
-                    <ClockIcon style={styles.lastUpdatedIcon} />
-                    Last updated 2 days ago
-                  </div>
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </main>
@@ -1046,25 +1251,41 @@ const response = await api.get("/manager/users")
 // Icon components (simplified for brevity)
 const PlusIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+      clipRule="evenodd"
+    />
   </svg>
 )
 
 const SearchIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+      clipRule="evenodd"
+    />
   </svg>
 )
 
 const CalendarIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+      clipRule="evenodd"
+    />
   </svg>
 )
 
 const DocumentIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+      clipRule="evenodd"
+    />
   </svg>
 )
 
@@ -1076,27 +1297,58 @@ const UsersIcon = ({ style }) => (
 
 const ClockIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+      clipRule="evenodd"
+    />
   </svg>
 )
 
 const DotsIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width: "1rem", height: "1rem"}}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    style={{ width: "1rem", height: "1rem" }}
+  >
     <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
   </svg>
 )
 
 const FolderOpenIcon = ({ style }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z"
+      clipRule="evenodd"
+    />
     <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
   </svg>
 )
 
 const LoadingSpinner = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle style={{opacity: 0.25}} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path style={{opacity: 0.75}} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path
+      style={{ opacity: 0.75 }}
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+)
+
+// NEW: AI Model Icons
+const KeyIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+  </svg>
+)
+
+const CpuIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path d="M13 7H7v6h6V7z" />
+    <path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" />
   </svg>
 )
 

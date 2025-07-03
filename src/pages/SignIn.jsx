@@ -116,7 +116,7 @@ const SignIn = (props) => {
       return false
     }
     if (!password || password.length < 6) {
-      setError("Password must be at least 6 characters long.")
+      setError("Password incorrect")
       return false
     }
     setError("")
