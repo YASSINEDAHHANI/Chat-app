@@ -2,21 +2,10 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import api from "../api"
 
-const requirementCategories = [
-  { value: "functionality", label: "Fonctionnalité" },
-  { value: "ui", label: "Interface utilisateur" },
-  { value: "security", label: "Sécurité" },
-  { value: "performance", label: "Performance" },
-  { value: "usability", label: "Utilisabilité" },
-  { value: "compatibility", label: "Compatibilité" },
-  { value: "accessibility", label: "Accessibilité" },
-]
-const getCategoryLabel = (value) => {
-  const category = requirementCategories.find(cat => cat.value === value);
-  return category ? category.label : value;
-}
+
+
 const styles = {
-  // Layout
+  // Your existing styles here - keeping them unchanged
   container: {
     display: "flex",
     minHeight: "100vh",
@@ -604,7 +593,6 @@ const styles = {
     backgroundColor: "transparent",
     border: "1px solid #9CA3AF",
   },
-  // Special states
   hidden: {
     display: "none",
   },
@@ -670,6 +658,29 @@ const styles = {
     color: "#111827",
   },
 }
+const requirementCategories = [
+  { value: "functionality", label: "Fonctionnalité" },
+  { value: "ui", label: "Interface utilisateur" },
+  { value: "security", label: "Sécurité" },
+  { value: "performance", label: "Performance" },
+  { value: "usability", label: "Utilisabilité" },
+  { value: "compatibility", label: "Compatibilité" },
+  { value: "accessibility", label: "Accessibilité" },
+]
+
+const getCategoryLabel = (value) => {
+  const category = requirementCategories.find(cat => cat.value === value);
+  return category ? category.label : value;
+}
+
+// Helper function to detect API key type
+const detectApiKeyType = (apiKey) => {
+  if (!apiKey) return 'unknown';
+  if (apiKey.startsWith('AIza')) return 'gemini';
+  if (apiKey.startsWith('sk-ant-')) return 'claude';
+  return 'unknown';
+};
+
 function Generate() {
   const { id: projectId } = useParams()
   const navigate = useNavigate()
@@ -698,6 +709,12 @@ function Generate() {
   const [directChatMode, setDirectChatMode] = useState(true)
   const [activeHistoryId, setActiveHistoryId] = useState(null)
   const [focusedInput, setFocusedInput] = useState(null)
+  const [currentApiService, setCurrentApiService] = useState('unknown')
+
+  // Keep track of processed text length to avoid reprocessing
+  let processedLength = 0;
+  let responseText = "";
+  let updatedTestsFound = false;
 
   // Media query handling
   useEffect(() => {
@@ -734,7 +751,44 @@ function Generate() {
     fetchRequirements()
   }, [projectId, requirementId])
 
-  // Add animation keyframes for the spinner and typing indicator
+  // Detect global API service type
+  useEffect(() => {
+    const checkApiService = async () => {
+      try {
+        const response = await api.get('/check_global_api_service');
+        if (response.data.configured) {
+          setCurrentApiService(response.data.service);
+          console.log(`Global ${response.data.service_name} configured`);
+        } else {
+          console.log("No global API service configured");
+          setCurrentApiService('none');
+        }
+      } catch (error) {
+        console.log("Could not detect global API service:", error);
+        setCurrentApiService('unknown');
+      }
+    };
+    
+    checkApiService(); 
+  }, []);
+
+  // History useEffect - simplified version
+  useEffect(() => {
+    console.log("History useEffect triggered", { 
+      projectId, 
+      selectedRequirement: selectedRequirement?.id, 
+      requirementId 
+    });
+    
+    // Only fetch history if we have the necessary data
+    if (projectId && (selectedRequirement || requirementId)) {
+      fetchHistory();
+    } else {
+      console.log("Clearing history - no project or requirement selected");
+      setHistoryItems([]);
+    }
+  }, [projectId, selectedRequirement?.id, requirementId]);
+
   useEffect(() => {
     const styleTag = document.createElement("style")
     styleTag.type = "text/css"
@@ -758,6 +812,59 @@ function Generate() {
     }
   }, [])
 
+  // Single unified history fetch function
+  const fetchHistory = async () => {
+    try {
+      console.log("Fetching history...", { projectId, selectedRequirement, requirementId });
+      
+      if (!projectId) {
+        console.log("No project ID, clearing history");
+        setHistoryItems([]);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append("project_id", projectId);
+
+      const reqId = selectedRequirement?.id || requirementId;
+      if (reqId) {
+        params.append("requirement_id", reqId);
+      }
+
+      const response = await api.get(`/history?${params.toString()}`);
+      console.log("History response:", response.data);
+
+      if (response.data.history && response.data.history.length > 0) {
+        const formattedHistory = response.data.history
+          .filter((item) => item.test_cases)
+          .map((item, index) => ({
+            id: item._id,
+            requirementId: item.requirement_id || "",
+            requirementTitle: item.requirement_title || "Unnamed Requirement",
+            version: response.data.history.length - index,
+            testCases: item.test_cases,
+            date: new Date(item.timestamp).toLocaleString(),
+            updateSource: item.update_type === "ai_assistant" 
+              ? "AI Assistant" 
+              : item.update_type === "manual_edit" 
+                ? "Manual Edit" 
+                : "Generated",
+            isActive: item._id === activeHistoryId,
+            versionNumber: item.version_number
+          }));
+
+        setHistoryItems(formattedHistory);
+        console.log("History loaded:", formattedHistory.length, "items");
+      } else {
+        setHistoryItems([]);
+        console.log("No history found");
+      }
+    } catch (error) {
+      console.error("Error fetching history:", error);
+      setHistoryItems([]);
+    }
+  };
+
   const handleCreateRequirement = () => {
     if (!newRequirementTitle.trim()) return
 
@@ -774,234 +881,107 @@ function Generate() {
     setShowRequirementForm(false)
   }
 
+  // Updated handleGenerate function
   const handleGenerate = async () => {
-    if (!selectedRequirement && !newRequirementTitle) return
+    if (!selectedRequirement && !newRequirementTitle) return;
 
-    setIsGenerating(true)
-    setGeneratedTests("") // Clear previous tests
+    setIsGenerating(true);
+    setGeneratedTests(""); // Clear previous tests
 
     const data = {
       requirements: requirementsDescription,
       format_type: outputFormat,
       example_case: outputFormat === "custom" ? customFormat : "",
       project_id: projectId,
-    }
+    };
 
     // Add requirement information
     if (selectedRequirement) {
-      data.requirement_id = selectedRequirement.id
-      data.requirement_title = selectedRequirement.title
+      data.requirement_id = selectedRequirement.id;
+      data.requirement_title = selectedRequirement.title;
     } else if (newRequirementTitle) {
-      data.requirement_title = newRequirementTitle
+      data.requirement_title = newRequirementTitle;
     }
 
     try {
-      console.log("Sending test generation request with data:", data)
+      console.log("Sending test generation request with data:", data);
 
-      // Use axios consistently with the rest of the app
-      const response = await api.post("/generate_test_cases", data)
+      const response = await api.post("/generate_test_cases", data);
 
-      const testCases = response.data.test_cases || ""
-      setGeneratedTests(testCases)
-      setEditedTests(testCases)
+      const testCases = response.data.test_cases || "";
+      setGeneratedTests(testCases);
+      setEditedTests(testCases);
 
-      // Refresh history
-      fetchHistory()
+      // Clear active history ID since this is a new generation
+      setActiveHistoryId(null);
+
+      // Refresh history after generation
+      setTimeout(() => {
+        fetchHistory();
+      }, 500);
+      
     } catch (error) {
-      console.error("Error generating test cases:", error)
-      const errorMessage = error.response?.data?.error || error.message || "Unknown error"
-      alert(`Error generating test cases: ${errorMessage}`)
+      console.error("Error generating test cases:", error);
+      const errorMessage = error.response?.data?.error || error.message || "Unknown error";
+      alert(`Error generating test cases: ${errorMessage}`);
     } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  // Modify fetchHistory to preserve active item
-  const fetchHistory = async () => {
-    try {
-      const params = new URLSearchParams()
-      params.append("project_id", projectId)
-
-      const reqId = selectedRequirement?.id || requirementId
-      if (reqId) params.append("requirement_id", reqId)
-
-      const response = await api.get(`/history?${params.toString()}`)
-
-      const formattedHistory = response.data.history
-        .filter((item) => item.test_cases)
-        .map((item) => ({
-          ...item,
-          id: item._id,
-          isActive: item._id === activeHistoryId, // Preserve active state
-        }))
-
-      setHistoryItems(formattedHistory)
-    } catch (error) {
-      console.error("Error fetching history:", error)
-      setHistoryItems([])
-    }
-  }
-  
-  const fetchAndUpdateHistory = async (updatedTests = null, newActiveHistoryId = null) => {
-    try {
-      const params = new URLSearchParams();
-      params.append("project_id", projectId);
-
-      const reqId = selectedRequirement?.id || requirementId;
-      if (reqId) params.append("requirement_id", reqId);
-
-      const response = await api.get(`/history?${params.toString()}`);
-
-      // Process history items with active state preserved
-      const formattedHistory = response.data.history
-        .filter((item) => item.test_cases)
-        .map((item) => {
-          const isActive = newActiveHistoryId 
-            ? item._id === newActiveHistoryId 
-            : activeHistoryId === item._id;
-          
-          // Override testCases if this is the active item and we have updated tests
-          const testCases = (isActive && updatedTests) ? updatedTests : item.test_cases;
-          
-          return {
-            id: item._id,
-            requirementId: item.requirement_id || "",
-            requirementTitle: item.requirement_title || "Unnamed Requirement",
-            version: item.version_number || 1,
-            testCases: testCases,
-            date: new Date(item.timestamp).toLocaleString(),
-            updateSource: item.update_type === "ai_assistant" 
-              ? "AI Assistant" 
-              : item.update_type === "manual_edit" 
-                ? "Manual Edit" 
-                : "Generated",
-            isActive: isActive,
-          };
-        });
-
-      // Apply our updated history to state
-      setHistoryItems(formattedHistory);
-      
-      // If we got a new active history ID, update that state
-      if (newActiveHistoryId) {
-        setActiveHistoryId(newActiveHistoryId);
-      }
-      
-      console.log("History refreshed successfully", {
-        itemCount: formattedHistory.length,
-        activeId: newActiveHistoryId || activeHistoryId
-      });
-    } catch (error) {
-      console.error("Error fetching history:", error);
+      setIsGenerating(false);
     }
   };
-  
-  // Also add this useEffect to fetch history items when component mounts
-  useEffect(() => {
-    // Fetch history for this specific requirement when component mounts or when selected requirement changes
-    const fetchHistory = async () => {
-      try {
-        if (!projectId || (!selectedRequirement && !requirementId)) {
-          // If no requirement is selected, clear history
-          setHistoryItems([])
-          return
-        }
 
-        const params = new URLSearchParams()
-        params.append("project_id", projectId)
-
-        // Only fetch history for the specific requirement
-        const reqId = selectedRequirement?.id || requirementId
-        if (reqId) {
-          params.append("requirement_id", reqId)
-        }
-
-        const response = await api.get(`/history?${params.toString()}`)
-
-        if (response.data.history && response.data.history.length > 0) {
-          const formattedHistory = response.data.history
-            .filter((item) => item.test_cases) // Only include items with test cases
-            .map((item, index) => ({
-              id: item._id || index + 1,
-              requirementId: item.requirement_id || "",
-              requirementTitle: item.requirement_title || "Unnamed Requirement",
-              version: response.data.history.length - index, // Reverse index for version number
-              testCases: item.test_cases,
-              date: new Date(item.timestamp).toLocaleString(),
-              updateSource:
-                item.update_type === "ai_assistant"
-                  ? "AI Assistant"
-                  : item.update_type === "manual_edit"
-                    ? "Manual Edit"
-                    : "Generated",
-              versionNumber: item.version_number,
-            }))
-
-          setHistoryItems(formattedHistory)
-        } else {
-          setHistoryItems([])
-        }
-      } catch (error) {
-        console.error("Error fetching history:", error)
-        setHistoryItems([])
-      }
+  const handleDownload = async (format) => {
+    if (!format || !generatedTests) return;
+    
+    try {
+      // Show loading state
+      setIsGenerating(true);
+      
+      // Prepare request data
+      const requestData = {
+        test_cases: generatedTests,
+        format: format, // 'pdf' or 'docx'
+        project_id: projectId,
+        requirement_id: selectedRequirement?.id || null,
+        requirement_title: selectedRequirement?.title || newRequirementTitle || "Test Cases",
+      };
+      
+      const response = await api.post('/export_test_cases', requestData, {
+        responseType: 'blob', 
+      });
+      
+      const blob = new Blob([response.data], {
+        type: format === 'pdf' 
+          ? 'application/pdf' 
+          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      
+      // Create temporary URL
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create temporary link element
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${requestData.requirement_title.replace(/\s+/g, '_')}_test_cases.${format}`);
+      
+      // Append to body, click and clean up
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error(`Error downloading ${format.toUpperCase()} file:`, error);
+    } finally {
+      setIsGenerating(false);
     }
+  };
 
-    fetchHistory()
-  }, [projectId, selectedRequirement, requirementId])
-
-  /// Update this function in your Generate.jsx file
-
-const handleDownload = async (format) => {
-  if (!format || !generatedTests) return;
-  
-  try {
-    // Show loading state
-    setIsGenerating(true);
-    
-    // Prepare request data
-    const requestData = {
-      test_cases: generatedTests,
-      format: format, // 'pdf' or 'docx'
-      project_id: projectId,
-      requirement_id: selectedRequirement?.id || null,
-      requirement_title: selectedRequirement?.title || newRequirementTitle || "Test Cases",
-    };
-    
-    const response = await api.post('/export_test_cases', requestData, {
-      responseType: 'blob', 
-    });
-    
-    const blob = new Blob([response.data], {
-      type: format === 'pdf' 
-        ? 'application/pdf' 
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-    
-    // Create temporary URL
-    const url = window.URL.createObjectURL(blob);
-    
-    // Create temporary link element
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${requestData.requirement_title.replace(/\s+/g, '_')}_test_cases.${format}`);
-    
-    // Append to body, click and clean up
-    document.body.appendChild(link);
-    link.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error(`Error downloading ${format.toUpperCase()} file:`, error);
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  // Simplified save function
   const saveEditedTestCases = async () => {
     try {
-      // Get the current active history item
+      console.log("Saving edited test cases...");
+      
       const activeHistoryItem = historyItems.find((item) => item.isActive);
-
+      
       const requestData = {
         test_cases: editedTests,
         requirements: requirementsDescription,
@@ -1013,29 +993,35 @@ const handleDownload = async (format) => {
 
       let newHistoryId = null;
 
-      // If we have an active history item, update that item instead of creating a new one
       if (activeHistoryItem && activeHistoryItem.id) {
-        requestData.history_id = activeHistoryItem.id;
-
+        // Update existing history item
         await api.put(`/update_test_cases/${activeHistoryItem.id}`, requestData);
         console.log("Updated existing test case history item:", activeHistoryItem.id);
         newHistoryId = activeHistoryItem.id;
       } else {
-        // Otherwise create a new history entry
+        // Create new history item
         const response = await api.post("/save_test_cases", requestData);
         console.log("Created new test case history item");
-        // If your backend returns the ID of the newly created history item, capture it here
         if (response.data && response.data._id) {
           newHistoryId = response.data._id;
         }
       }
 
-      // Update current displayed tests
+      // Update current state
       setGeneratedTests(editedTests);
       setIsEditing(false);
+      
+      // Update active history ID if we have a new one
+      if (newHistoryId) {
+        setActiveHistoryId(newHistoryId);
+      }
 
-      // Refresh history with our updated tests and active history ID
-      await fetchAndUpdateHistory(editedTests, newHistoryId || activeHistoryId);
+      // Refresh history
+      setTimeout(() => {
+        fetchHistory();
+      }, 500);
+      
+      console.log("Test cases saved successfully");
     } catch (error) {
       console.error("Error saving test case edits:", error);
       alert("Failed to save your changes. Please try again.");
@@ -1046,186 +1032,186 @@ const handleDownload = async (format) => {
     saveEditedTestCases();
   };
 
+  // Load a specific history version
   const loadHistoryVersion = (historyItem) => {
+    console.log("Loading history version:", historyItem.id);
+    
     setGeneratedTests(historyItem.testCases);
     setEditedTests(historyItem.testCases);
     setIsEditing(false);
-    
-    // Update active history ID
     setActiveHistoryId(historyItem.id);
 
+    // Update the history items to reflect the new active state
     const updatedHistoryItems = historyItems.map((item) => ({
       ...item,
       isActive: item.id === historyItem.id,
     }));
     setHistoryItems(updatedHistoryItems);
+    
+    console.log("History version loaded successfully");
   };
 
   const handleChatSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!currentMessage.trim()) return;
+    if (!currentMessage.trim()) return;
 
-  console.log("Starting chat request with message:", currentMessage);
-  
-  // Add user message to chat immediately
-  const userMessage = { role: "user", content: currentMessage };
-  setChatMessages(prev => [...prev, userMessage]);
-  setCurrentMessage("");
-
-  const tempId = Date.now().toString();
-  setChatMessages(prev => [...prev, { 
-    id: tempId, 
-    role: "assistant", 
-    content: "Thinking...", 
-    isPartial: true 
-  }]);
-
-  try {
-    const requestData = {
-      message: userMessage.content,
-      project_id: projectId,
-      test_cases: generatedTests || "",
-      requirement_id: selectedRequirement?.id || null,
-      requirement_title: selectedRequirement?.title || newRequirementTitle,
-      requirements: requirementsDescription,
-      chat_history: chatMessages.filter(msg => !msg.isPartial),
-      direct_mode: directChatMode,
-      active_history_id: activeHistoryId,
-    };
-
-    console.log("Sending chat request with data:", {
-      message: requestData.message,
-      projectId: requestData.project_id,
-      directMode: requestData.direct_mode
-    });
-
-    // Remove the temporary thinking message before starting the actual request
-    setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-
-    // For SSE, we need to use specific configuration with axios
-    const response = await api({
-      method: 'post',
-      url: '/chat_with_assistant',
-      data: requestData,
-      responseType: 'text', // Important for SSE
-      onDownloadProgress: (progressEvent) => {
-        // We need to manually process the text as it comes in
-        const text = progressEvent.event.target.responseText;
-        processSSEResponse(text);
-      }
-    });
+    console.log("Starting chat request with message:", currentMessage);
     
-  } catch (error) {
-    console.error("Chat error:", error);
-    
-    setChatMessages(prev => {
-      const filtered = prev.filter(msg => msg.id !== tempId);
-      
-      return [...filtered, {
-        role: "assistant",
-        content: `Erreur de communication avec le serveur. ${error.message || ""}`
-      }];
-    });
-  }
-};
+    // Add user message to chat immediately
+    const userMessage = { role: "user", content: currentMessage };
+    setChatMessages(prev => [...prev, userMessage]);
+    setCurrentMessage("");
 
-// Keep track of processed text length to avoid reprocessing
-let processedLength = 0;
-let responseText = "";
-let updatedTestsFound = false;
+    const tempId = Date.now().toString();
+    setChatMessages(prev => [...prev, { 
+      id: tempId, 
+      role: "assistant", 
+      content: "Thinking...", 
+      isPartial: true 
+    }]);
 
-const processSSEResponse = (text) => {
-  // Only process the new part of the text
-  const newText = text.substring(processedLength);
-  processedLength = text.length;
-  
-  if (!newText) return;
-  
-  // Split by double newlines which typically separate SSE messages
-  const messages = newText.split('\n\n');
-  
-  for (const message of messages) {
-    if (!message.trim()) continue;
-    
-    // Process each line that starts with "data: "
-    const lines = message.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.replace('data: ', '');
-        
-        if (data === "[DONE]") {
-          console.log("Received DONE marker");
-          
-          // Handle any remaining response text if no test updates were found
-          if (responseText && !updatedTestsFound) {
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
-              role: "assistant",
-              content: responseText
-            }]);
-          }
-          continue;
+    try {
+      const requestData = {
+        message: userMessage.content,
+        project_id: projectId,
+        test_cases: generatedTests || "",
+        requirement_id: selectedRequirement?.id || null,
+        requirement_title: selectedRequirement?.title || newRequirementTitle,
+        requirements: requirementsDescription,
+        chat_history: chatMessages.filter(msg => !msg.isPartial),
+        direct_mode: directChatMode,
+        active_history_id: activeHistoryId,
+      };
+
+      console.log("Sending chat request with data:", {
+        message: requestData.message,
+        projectId: requestData.project_id,
+        directMode: requestData.direct_mode
+      });
+
+      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
+
+      const response = await api({
+        method: 'post',
+        url: '/chat_with_assistant',
+        data: requestData,
+        responseType: 'text', // Important for SSE
+        onDownloadProgress: (progressEvent) => {
+          const text = progressEvent.event.target.responseText;
+          processSSEResponse(text);
         }
+      });
+      
+    } catch (error) {
+      console.error("Chat error:", error);
+      
+      setChatMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== tempId);
         
-        try {
-          const parsed = JSON.parse(data);
+        return [...filtered, {
+          role: "assistant",
+          content: `Erreur de communication avec le serveur. ${error.message || ""}`
+        }];
+      });
+    }
+  };
+
+  // Process chat response that might contain updated test cases
+  const processSSEResponse = (text) => {
+    // Only process the new part of the text
+    const newText = text.substring(processedLength);
+    processedLength = text.length;
+    
+    if (!newText) return;
+    
+    // Split by double newlines which typically separate SSE messages
+    const messages = newText.split('\n\n');
+    
+    for (const message of messages) {
+      if (!message.trim()) continue;
+      
+      // Process each line that starts with "data: "
+      const lines = message.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.replace('data: ', '');
           
-          // Handle updated test cases
-          if (parsed.updated_test_cases) {
-            updatedTestsFound = true;
-            const updatedTests = parsed.updated_test_cases;
+          if (data === "[DONE]") {
+            console.log("Received DONE marker");
             
-            console.log("Received updated test cases");
-            
-            setGeneratedTests(updatedTests);
-            setEditedTests(updatedTests);
-            
-            if (isEditing) setIsEditing(false);
-            
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-              role: "assistant", 
-              content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
-            }]);
-            
-            fetchAndUpdateHistory(updatedTests, activeHistoryId);
+            // Handle any remaining response text if no test updates were found
+            if (responseText && !updatedTestsFound) {
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+                role: "assistant",
+                content: responseText
+              }]);
+            }
+            continue;
           }
-          else if (parsed.chunk) {
-            responseText += parsed.chunk;
+          
+          try {
+            const parsed = JSON.parse(data);
             
-            setChatMessages(prev => {
-              const assistantMsg = prev.find(msg => 
-                msg.role === "assistant" && msg.isPartial
-              );
+            // Handle updated test cases
+            if (parsed.updated_test_cases) {
+              updatedTestsFound = true;
+              const updatedTests = parsed.updated_test_cases;
               
-              if (assistantMsg) {
-                return prev.map(msg => 
-                  (msg.role === "assistant" && msg.isPartial) 
-                    ? { ...msg, content: responseText } 
-                    : msg
+              console.log("Received updated test cases from chat");
+              
+              setGeneratedTests(updatedTests);
+              setEditedTests(updatedTests);
+              
+              if (isEditing) setIsEditing(false);
+              
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+                role: "assistant", 
+                content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
+              }]);
+              
+              // Refresh history after AI modification
+              setTimeout(() => {
+                fetchHistory();
+              }, 500);
+            }
+            else if (parsed.chunk) {
+              responseText += parsed.chunk;
+              
+              setChatMessages(prev => {
+                const assistantMsg = prev.find(msg => 
+                  msg.role === "assistant" && msg.isPartial
                 );
-              } else {
-                return [...prev, { 
-                  role: "assistant", 
-                  content: responseText, 
-                  isPartial: true 
-                }];
-              }
-            });
+                
+                if (assistantMsg) {
+                  return prev.map(msg => 
+                    (msg.role === "assistant" && msg.isPartial) 
+                      ? { ...msg, content: responseText } 
+                      : msg
+                  );
+                } else {
+                  return [...prev, { 
+                    role: "assistant", 
+                    content: responseText, 
+                    isPartial: true 
+                  }];
+                }
+              });
+            }
+            else if (parsed.error) {
+              console.error("Server error:", parsed.error);
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+                role: "assistant", 
+                content: `Error: ${parsed.error}` 
+              }]);
+            }
+          } catch (error) {
+            console.warn("Error parsing SSE message:", error, "Raw data:", data);
           }
-          else if (parsed.error) {
-            console.error("Server error:", parsed.error);
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-              role: "assistant", 
-              content: `Error: ${parsed.error}` 
-            }]);
-          }
-        } catch (error) {
-          console.warn("Error parsing SSE message:", error, "Raw data:", data);
         }
       }
     }
-  }
-};
+  };
 
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
@@ -1785,6 +1771,28 @@ const processSSEResponse = (text) => {
           <div style={styles.chatHeader}>
             <h3 style={styles.chatTitle}>Assistant IA</h3>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {/* AI Service Indicator */}
+              {currentApiService !== 'unknown' && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: currentApiService === 'gemini' ? '#10B981' : '#4F46E5',
+                  backgroundColor: currentApiService === 'gemini' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(79, 70, 229, 0.1)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '0.375rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}>
+                  <div style={{
+                    width: '0.5rem',
+                    height: '0.5rem',
+                    borderRadius: '50%',
+                    backgroundColor: currentApiService === 'gemini' ? '#10B981' : '#4F46E5'
+                  }} />
+                  {currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}
+                </div>
+              )}
+              
               <div
                 onClick={() => setDirectChatMode(!directChatMode)}
                 style={{
@@ -1855,8 +1863,8 @@ const processSSEResponse = (text) => {
                 </svg>
                 <p style={styles.emptyChatText}>
                   {directChatMode
-                    ? "Demandez des modifications directes à vos cas de test."
-                    : "Posez des questions sur vos cas de test générés pour obtenir de l'aide ou des suggestions d'amélioration."}
+                    ? `Demandez des modifications directes à vos cas de test${currentApiService !== 'unknown' ? ` en utilisant ${currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}` : ''}.`
+                    : `Posez des questions sur vos cas de test générés pour obtenir de l'aide ou des suggestions d'amélioration${currentApiService !== 'unknown' ? ` via ${currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}` : ''}.`}
                 </p>
               </div>
             ) : (
