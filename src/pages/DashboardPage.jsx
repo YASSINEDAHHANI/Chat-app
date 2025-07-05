@@ -1,6 +1,7 @@
-import logoImage from "../shared-theme/logo-test-case.png"
-import { useState, useEffect } from "react"
-import api from "../api"
+import logoImage from "../shared-theme/logo-test-case.png";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api";
 
 // Light theme styles based on the TestGen interface
 const styles = {
@@ -384,6 +385,28 @@ const styles = {
     borderColor: "#3b82f6",
     boxShadow: "0 0 0 1px #3b82f6",
   },
+  select: {
+    width: "100%",
+    padding: "0.625rem 0.75rem",
+    borderRadius: "0.5rem",
+    border: "1px solid rgba(0, 0, 0, 0.1)",
+    fontSize: "0.875rem",
+    transition: "all 0.2s",
+    outline: "none",
+    backgroundColor: "#ffffff",
+    color: "#1f2937",
+    boxSizing: "border-box",
+    appearance: "none",
+    backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e\")",
+    backgroundPosition: "right 0.5rem center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "1.5em 1.5em",
+    paddingRight: "2.5rem",
+  },
+  selectFocus: {
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 1px #3b82f6",
+  },
   textarea: {
     width: "100%",
     padding: "0.625rem 0.75rem",
@@ -573,330 +596,1286 @@ const styles = {
     textAlign: "center",
     padding: "1rem",
   },
+
+  // Settings popup styles
+  settingsPopup: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  settingsContent: {
+    backgroundColor: "white",
+    borderRadius: "0.75rem",
+    padding: "2rem",
+    maxWidth: "600px",
+    width: "90%",
+    maxHeight: "80vh",
+    overflowY: "auto",
+    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+  },
+  settingsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1.5rem",
+    paddingBottom: "1rem",
+    borderBottom: "1px solid #e5e7eb",
+  },
+  settingsTitle: {
+    fontSize: "1.5rem",
+    fontWeight: "600",
+    color: "#1f2937",
+    margin: 0,
+  },
+  closeButton: {
+    background: "none",
+    border: "none",
+    color: "#6b7280",
+    cursor: "pointer",
+    padding: "0.5rem",
+    borderRadius: "0.375rem",
+    transition: "all 0.2s",
+  },
+  closeButtonHover: {
+    backgroundColor: "#f3f4f6",
+    color: "#374151",
+  },
+  settingsSection: {
+    marginBottom: "2rem",
+  },
+  sectionTitle: {
+    fontSize: "1.125rem",
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: "1rem",
+  },
+  formRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "1rem",
+    marginBottom: "1rem",
+  },
+  collaboratorsList: {
+    maxHeight: "200px",
+    overflowY: "auto",
+    border: "1px solid #e5e7eb",
+    borderRadius: "0.5rem",
+    padding: "0.5rem",
+  },
+  collaboratorItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0.75rem",
+    backgroundColor: "#f9fafb",
+    borderRadius: "0.375rem",
+    marginBottom: "0.5rem",
+  },
+  collaboratorInfo: {
+    display: "flex",
+    alignItems: "center",
+  },
+  collaboratorAvatar: {
+    width: "2rem",
+    height: "2rem",
+    borderRadius: "50%",
+    backgroundColor: "#e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: "0.75rem",
+    fontSize: "0.875rem",
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  collaboratorDetails: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  collaboratorName: {
+    fontSize: "0.875rem",
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  collaboratorEmail: {
+    fontSize: "0.75rem",
+    color: "#6b7280",
+  },
+  removeButton: {
+    background: "none",
+    border: "none",
+    color: "#ef4444",
+    cursor: "pointer",
+    padding: "0.25rem",
+    borderRadius: "0.25rem",
+    transition: "all 0.2s",
+  },
+  removeButtonHover: {
+    backgroundColor: "#fee2e2",
+  },
+  addCollaboratorRow: {
+    display: "flex",
+    gap: "0.5rem",
+    marginTop: "1rem",
+  },
+  addCollaboratorInput: {
+    flex: 1,
+    padding: "0.625rem 0.75rem",
+    borderRadius: "0.375rem",
+    border: "1px solid #d1d5db",
+    fontSize: "0.875rem",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+  },
+  addButton: {
+    padding: "0.625rem 1rem",
+    backgroundColor: "#10b981",
+    color: "white",
+    border: "none",
+    borderRadius: "0.375rem",
+    fontSize: "0.875rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  addButtonHover: {
+    backgroundColor: "#059669",
+  },
+  saveButton: {
+    padding: "0.75rem 1.5rem",
+    backgroundColor: "#3b82f6",
+    color: "white",
+    border: "none",
+    borderRadius: "0.375rem",
+    fontSize: "0.875rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    marginRight: "0.5rem",
+  },
+  saveButtonHover: {
+    backgroundColor: "#2563eb",
+  },
+  cancelButton: {
+    padding: "0.75rem 1.5rem",
+    backgroundColor: "#6b7280",
+    color: "white",
+    border: "none",
+    borderRadius: "0.375rem",
+    fontSize: "0.875rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  cancelButtonHover: {
+    backgroundColor: "#4b5563",
+  },
+  readOnlyMessage: {
+    backgroundColor: "#fef3c7",
+    border: "1px solid #f59e0b",
+    borderRadius: "0.5rem",
+    padding: "0.75rem",
+    fontSize: "0.875rem",
+    color: "#92400e",
+    marginBottom: "1rem",
+  },
 }
 
-function Dashboard({ user }) {
-  const navigate = (path) => {
-    window.location.href = path
-  }
 
-  // State variables
-  const [projects, setProjects] = useState([])
-  const [newProjectName, setNewProjectName] = useState("")
-  const [projectContext, setProjectContext] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const [hoveredCard, setHoveredCard] = useState(null)
-  const [hoveredButton, setHoveredButton] = useState(null)
-  const [focusedInput, setFocusedInput] = useState(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [userSearchQuery, setUserSearchQuery] = useState("")
+// Icon components
+const PlusIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+  </svg>
+);
 
-  // NEW: State for project AI model info
-  const [projectModels, setProjectModels] = useState({})
+const SearchIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+  </svg>
+);
 
-  // User role and permissions
-  const [userRole, setUserRole] = useState("user")
-  const [canCreateProjects, setCanCreateProjects] = useState(false)
-  const [isManager, setIsManager] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+const CalendarIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+  </svg>
+);
 
-  // Manager-specific states
-  const [availableUsers, setAvailableUsers] = useState([])
-  const [selectedUsers, setSelectedUsers] = useState([])
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+const DocumentIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+  </svg>
+);
 
-  // Media query handling
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+const UsersIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+  </svg>
+);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+const ClockIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+  </svg>
+);
+
+const DotsIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{ width: "1rem", height: "1rem" }}>
+    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+  </svg>
+);
+
+const FolderOpenIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z" clipRule="evenodd" />
+    <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
+  </svg>
+);
+
+const LoadingSpinner = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
+
+const KeyIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+  </svg>
+);
+
+const CpuIcon = ({ style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
+    <path d="M13 7H7v6h6V7z" />
+    <path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{ width: "1rem", height: "1rem" }}>
+    <path fillRule="evenodd" d="M8.34 1.804A1 1 0 019.32 1h1.36a1 1 0 01.98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 011.262.125l.962.962a1 1 0 01.125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.294a1 1 0 01.804.98v1.361a1 1 0 01-.804.98l-1.473.295a6.95 6.95 0 01-.587 1.416l.834 1.25a1 1 0 01-.125 1.262l-.962.962a1 1 0 01-1.262.125l-1.25-.834a6.953 6.953 0 01-1.416.587l-.294 1.473a1 1 0 01-.98.804H9.32a1 1 0 01-.98-.804l-.295-1.473a6.957 6.957 0 01-1.416-.587l-1.25.834a1 1 0 01-1.262-.125l-.962-.962a1 1 0 01-.125-1.262l.834-1.25a6.957 6.957 0 01-.587-1.416l-1.473-.294A1 1 0 011 10.68V9.32a1 1 0 01.804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 01.125-1.262l.962-.962A1 1 0 015.38 3.03l1.25.834a6.957 6.957 0 011.416-.587l.294-1.473zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{ width: "1.25rem", height: "1.25rem" }}>
+    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{ width: "1rem", height: "1rem" }}>
+    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+  </svg>
+);
+
+// Subcomponents
+const Header = ({ userRole, isAdmin, isManager, handleLogout, navigate }) => (
+  <header style={styles.header}>
+    <div style={styles.headerContainer}>
+      <img src={logoImage || "/placeholder.svg"} alt="TestGen Logo" style={styles.logo} />
+      <div style={styles.navLinks}>
+        {isAdmin && (
+          <button
+            style={styles.navLink}
+            onClick={() => navigate("/admin")}
+            aria-label="Admin panel"
+          >
+            Admin Panel
+          </button>
+        )}
+
+        {isManager && !isAdmin && (
+          <button
+            style={styles.navLink}
+            onClick={() => navigate("/manager")}
+            aria-label="Manager panel"
+          >
+            Manager Panel
+          </button>
+        )}
+        <button
+          style={styles.navLink}
+          onClick={handleLogout}
+          aria-label="Logout"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+);
+
+const ProjectCard = ({ 
+  project, 
+  modelInfo, 
+  hoveredCard, 
+  setHoveredCard, 
+  hoveredButton, 
+  setHoveredButton,
+  handleOpenSettings
+}) => {
+  const navigate = useNavigate();
+  
+  // Helper functions for AI model display
+  const getAIModelIcon = (effectiveService) => {
+    return effectiveService === 'claude' ? 
+      <KeyIcon style={styles.aiModelIcon} /> : 
+      <CpuIcon style={styles.aiModelIcon} />;
+  };
+
+  const getAIModelBadgeStyle = (effectiveService) => {
+    return effectiveService === 'claude' ? 
+      { ...styles.aiModelBadge, ...styles.claudeBadge } : 
+      { ...styles.aiModelBadge, ...styles.localBadge };
+  };
+
+  const getAIModelDisplayName = (effectiveService) => {
+    return effectiveService === 'claude' ? 'Claude AI' : 'Local RAG';
+  };
+
+  return (
+    <div
+      key={project.id}
+      style={hoveredCard === project.id ? 
+        { ...styles.projectCard, ...styles.cardHover } : 
+        styles.projectCard}
+      onClick={() => navigate(`/project/${project.id}`)}
+      onMouseEnter={() => setHoveredCard(project.id)}
+      onMouseLeave={() => setHoveredCard(null)}
+      aria-label={`Open project: ${project.name}`}
+    >
+      <div style={styles.cardHeader}>
+        <h3 style={styles.cardTitle}>{project.name}</h3>
+        <button
+          style={
+            hoveredButton === `menu-${project.id}`
+              ? { ...styles.cardMenuButton, ...styles.cardMenuButtonHover }
+              : styles.cardMenuButton
+          }
+          onClick={(e) => handleOpenSettings(project, e)}
+          onMouseEnter={() => setHoveredButton(`menu-${project.id}`)}
+          onMouseLeave={() => setHoveredButton(null)}
+          aria-label="Project settings"
+        >
+          <DotsIcon />
+        </button>
+      </div>
+
+      <div style={styles.cardContent}>
+        <div style={styles.cardRow}>
+          <div style={styles.cardItem}>
+            <CalendarIcon style={styles.cardIcon} />
+            {new Date(project.created_at).toISOString().split("T")[0]}
+          </div>
+          <div style={styles.cardItem}>
+            <DocumentIcon style={styles.cardIcon} />
+            {project.test_count || 0} tests
+          </div>
+        </div>
+        <div style={styles.cardRow}>
+          <div style={styles.cardItem}>
+            <UsersIcon style={styles.cardIcon} />
+            {project.collaborators?.length || 0} collaborators
+          </div>
+          {modelInfo ? (
+            <div style={getAIModelBadgeStyle(modelInfo.effective_service)}>
+              {getAIModelIcon(modelInfo.effective_service)}
+              {getAIModelDisplayName(modelInfo.effective_service)}
+            </div>
+          ) : (
+            <div style={getAIModelBadgeStyle('local')}>
+              {getAIModelIcon('local')}
+              {getAIModelDisplayName('local')}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={styles.cardFooter}>
+        <div
+          style={
+            project.is_owner
+              ? { ...styles.statusBadge, ...styles.ownerBadge }
+              : { ...styles.statusBadge, ...styles.collaboratorBadge }
+          }
+        >
+          {project.is_owner ? "Owner" : "Collaborator"}
+        </div>
+        <div style={styles.lastUpdated}>
+          <ClockIcon style={styles.lastUpdatedIcon} />
+          Last updated 2 days ago
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CreateProjectModal = ({
+  isDialogOpen,
+  setIsDialogOpen,
+  newProjectName,
+  setNewProjectName,
+  projectContext,
+  setProjectContext,
+  projectLanguage,
+  setProjectLanguage,
+  userSearchQuery,
+  setUserSearchQuery,
+  selectedUsers,
+  setSelectedUsers,
+  isManager,
+  isAdmin,
+  canCreateProjects,
+  focusedInput,
+  setFocusedInput,
+  hoveredButton,
+  setHoveredButton,
+  handleCreateProject,
+  availableUsers,
+  isLoadingUsers,
+  fetchAvailableUsers
+}) => {
+  if (!isDialogOpen) return null;
+
+  // User selection handlers
+  const handleUserSelection = (username, checked) => {
+    if (checked) {
+      setSelectedUsers([...selectedUsers, username]);
+    } else {
+      setSelectedUsers(selectedUsers.filter((user) => user !== username));
     }
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  };
 
-  // Check user role and permissions on component mount
+  const removeSelectedUser = (username) => {
+    setSelectedUsers(selectedUsers.filter((user) => user !== username));
+  };
+
+  return (
+    <div style={styles.modal}>
+      <div style={styles.modalOverlay} onClick={() => setIsDialogOpen(false)}></div>
+      <div style={styles.modalContent}>
+        <div style={styles.modalHeader}>
+          <h3 style={styles.modalTitle}>Create New Project</h3>
+          <p style={styles.modalDesc}>
+            {isManager || isAdmin
+              ? "Create a project and assign users to collaborate on it."
+              : "Create a new project for test case generation."}
+          </p>
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel} htmlFor="project-name">
+            Project Name
+          </label>
+          <input
+            id="project-name"
+            style={
+              focusedInput === "projectName" 
+                ? { ...styles.input, ...styles.inputFocus } 
+                : styles.input
+            }
+            placeholder="Enter project name"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            onFocus={() => setFocusedInput("projectName")}
+            onBlur={() => setFocusedInput(null)}
+            aria-required="true"
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel} htmlFor="project-context">
+            Project Description
+          </label>
+          <textarea
+            id="project-context"
+            rows={4}
+            style={
+              focusedInput === "projectContext"
+                ? { ...styles.textarea, ...styles.textareaFocus }
+                : styles.textarea
+            }
+            placeholder="Describe the project's functional requirements..."
+            value={projectContext}
+            onChange={(e) => setProjectContext(e.target.value)}
+            onFocus={() => setFocusedInput("projectContext")}
+            onBlur={() => setFocusedInput(null)}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel} htmlFor="project-language">
+            Project Language
+          </label>
+          <select
+            id="project-language"
+            style={
+              focusedInput === "projectLanguage" 
+                ? { ...styles.select, ...styles.selectFocus } 
+                : styles.select
+            }
+            value={projectLanguage}
+            onChange={(e) => setProjectLanguage(e.target.value)}
+            onFocus={() => setFocusedInput("projectLanguage")}
+            onBlur={() => setFocusedInput(null)}
+          >
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+          </select>
+        </div>
+
+        {(isManager || isAdmin) && (
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Assign Users</label>
+            <p style={styles.helperText}>Select users to assign as collaborators on this project.</p>
+
+            {isLoadingUsers ? (
+              <div style={styles.loadingContainer}>
+                <LoadingSpinner style={styles.loadingSpinner} />
+                <span style={styles.loadingText}>Loading users...</span>
+              </div>
+            ) : (
+              <>
+                <div style={{ ...styles.searchContainer, marginBottom: "0.75rem" }}>
+                  <SearchIcon style={styles.searchIcon} />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    style={
+                      focusedInput === "userSearch"
+                        ? { ...styles.searchInput, ...styles.searchInputFocus }
+                        : styles.searchInput
+                    }
+                    onFocus={() => setFocusedInput("userSearch")}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </div>
+
+                <div style={styles.userSelectionContainer}>
+                  {availableUsers.length === 0 ? (
+                    <p style={styles.emptyUsersText}>No users available for assignment</p>
+                  ) : (
+                    (() => {
+                      const filteredUsers = availableUsers.filter(
+                        (user) =>
+                          !userSearchQuery ||
+                          (user.email && user.email.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
+                          (user.username && user.username.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                      );
+
+                      return filteredUsers.length === 0 ? (
+                        <p style={styles.emptyUsersText}>No users found matching "{userSearchQuery}"</p>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <div
+                            key={user.username}
+                            style={styles.userCheckbox}
+                            onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.05)")}
+                            onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                          >
+                            <input
+                              type="checkbox"
+                              style={styles.checkbox}
+                              checked={selectedUsers.includes(user.username)}
+                              onChange={(e) => handleUserSelection(user.username, e.target.checked)}
+                              aria-label={`Select user ${user.username}`}
+                            />
+                            <span style={styles.userLabel}>{user.email || user.username}</span>
+                          </div>
+                        ))
+                      );
+                    })()
+                  )}
+                </div>
+              </>
+            )}
+
+            {selectedUsers.length > 0 && (
+              <div style={styles.selectedUsersDisplay}>
+                {selectedUsers.map((username) => (
+                  <span key={username} style={styles.userTag}>
+                    {username}
+                    <button
+                      type="button"
+                      style={styles.removeUserButton}
+                      onClick={() => removeSelectedUser(username)}
+                      onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
+                      onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                      aria-label={`Remove user ${username}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={styles.modalFooter}>
+          <div></div>
+          <div style={styles.modalFooterButtons}>
+            <button
+              type="button"
+              style={
+                hoveredButton === "cancel"
+                  ? { ...styles.outlineButton, ...styles.outlineButtonHover }
+                  : styles.outlineButton
+              }
+              onClick={() => {
+                setIsDialogOpen(false);
+                setNewProjectName("");
+                setProjectContext("");
+                setSelectedUsers([]);
+                setUserSearchQuery("");
+                setProjectLanguage("en");
+              }}
+              onMouseEnter={() => setHoveredButton("cancel")}
+              onMouseLeave={() => setHoveredButton(null)}
+              aria-label="Cancel project creation"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              style={
+                !newProjectName.trim()
+                  ? styles.primaryButtonDisabled
+                  : hoveredButton === "create"
+                    ? { ...styles.primaryButton, ...styles.primaryButtonHover }
+                    : styles.primaryButton
+              }
+              onClick={handleCreateProject}
+              disabled={!newProjectName.trim()}
+              onMouseEnter={() => setHoveredButton("create")}
+              onMouseLeave={() => setHoveredButton(null)}
+              aria-label="Create project"
+            >
+              Create Project
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProjectSettingsModal = ({
+  selectedSettingsProject,
+  setSelectedSettingsProject,
+  isSettingsPopupOpen,
+  setIsSettingsPopupOpen,
+  editedProjectName,
+  setEditedProjectName,
+  editedProjectContext,
+  setEditedProjectContext,
+  editedProjectLanguage,
+  setEditedProjectLanguage,
+  projectCollaborators,
+  setProjectCollaborators,
+  newCollaboratorEmail,
+  setNewCollaboratorEmail,
+  isLoadingSettings,
+  setIsLoadingSettings,
+  userRole,
+  hoveredButton,
+  setHoveredButton,
+  focusedInput,
+  setFocusedInput,
+  fetchProjects,
+  fetchProjectCollaborators,
+  fetchAvailableUsers,
+  isManager,
+  isAdmin
+}) => {
+  const navigate = useNavigate();
+  
+  if (!isSettingsPopupOpen || !selectedSettingsProject) return null;
+
+  // Project settings handlers
+  const handleSaveSettings = async () => {
+    if (!selectedSettingsProject) return;
+    
+    setIsLoadingSettings(true);
+    
+    try {
+      await api.put(`/projects/${selectedSettingsProject.id}`, {
+        name: editedProjectName,
+        context: editedProjectContext,
+        language: editedProjectLanguage,
+      });
+      
+      await fetchProjects();
+      setIsSettingsPopupOpen(false);
+      setSelectedSettingsProject(null);
+    } catch (error) {
+      console.error("Error saving project settings:", error);
+      alert("Failed to save project settings");
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const handleAddCollaborator = async () => {
+    if (!newCollaboratorEmail.trim() || !selectedSettingsProject) return;
+    
+    try {
+      await api.post(`/projects/${selectedSettingsProject.id}/collaborators`, {
+        email: newCollaboratorEmail.trim()
+      });
+      
+      await fetchProjectCollaborators(selectedSettingsProject.id);
+      setNewCollaboratorEmail("");
+      await fetchProjects();
+    } catch (error) {
+      console.error("Error adding collaborator:", error);
+      alert(error.response?.data?.error || "Failed to add collaborator");
+    }
+  };
+
+  const handleRemoveCollaborator = async (collaboratorId) => {
+    if (!selectedSettingsProject) return;
+    
+    try {
+      await api.delete(`/collaborators/${collaboratorId}`);
+      await fetchProjectCollaborators(selectedSettingsProject.id);
+      await fetchProjects();
+    } catch (error) {
+      console.error("Error removing collaborator:", error);
+      alert("Failed to remove collaborator");
+    }
+  };
+
+  const handleCloseSettings = () => {
+    setIsSettingsPopupOpen(false);
+    setSelectedSettingsProject(null);
+    setEditedProjectName("");
+    setEditedProjectContext("");
+    setEditedProjectLanguage("en");
+    setProjectCollaborators([]);
+    setNewCollaboratorEmail("");
+  };
+
+  return (
+    <div style={styles.settingsPopup}>
+      <div style={styles.settingsContent}>
+        <div style={styles.settingsHeader}>
+          <h2 style={styles.settingsTitle}>Project Settings</h2>
+          <button
+            style={
+              hoveredButton === "close-settings"
+                ? { ...styles.closeButton, ...styles.closeButtonHover }
+                : styles.closeButton
+            }
+            onClick={handleCloseSettings}
+            onMouseEnter={() => setHoveredButton("close-settings")}
+            onMouseLeave={() => setHoveredButton(null)}
+            aria-label="Close settings"
+          >
+            <XIcon />
+          </button>
+        </div>
+
+        {isLoadingSettings ? (
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <LoadingSpinner style={{ width: "2rem", height: "2rem", margin: "0 auto" }} />
+            <p style={{ marginTop: "1rem", color: "#6b7280" }}>Loading settings...</p>
+          </div>
+        ) : (
+          <>
+            <div style={styles.settingsSection}>
+              <h3 style={styles.sectionTitle}>
+                <SettingsIcon style={{ marginRight: "0.5rem", display: "inline-block" }} />
+                Project Details
+              </h3>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Project Name</label>
+                <input
+                  type="text"
+                  value={editedProjectName}
+                  onChange={(e) => setEditedProjectName(e.target.value)}
+                  style={
+                    focusedInput === "editName"
+                      ? { ...styles.input, ...styles.inputFocus }
+                      : styles.input
+                  }
+                  onFocus={() => setFocusedInput("editName")}
+                  onBlur={() => setFocusedInput(null)}
+                  disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                  aria-disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                />
+              </div>
+
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Language</label>
+                  <select
+                    value={editedProjectLanguage}
+                    onChange={(e) => setEditedProjectLanguage(e.target.value)}
+                    style={
+                      focusedInput === "editLanguage"
+                        ? { ...styles.select, ...styles.selectFocus }
+                        : styles.select
+                    }
+                    onFocus={() => setFocusedInput("editLanguage")}
+                    onBlur={() => setFocusedInput(null)}
+                    disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                    aria-disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                  >
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                  </select>
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Owner</label>
+                  <div style={{
+                    padding: "0.625rem 0.75rem",
+                    backgroundColor: "#f9fafb",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                    color: "#6b7280"
+                  }}>
+                    {selectedSettingsProject.user}
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Description</label>
+                <textarea
+                  value={editedProjectContext}
+                  onChange={(e) => setEditedProjectContext(e.target.value)}
+                  rows={4}
+                  style={
+                    focusedInput === "editContext"
+                      ? { ...styles.textarea, ...styles.textareaFocus }
+                      : styles.textarea
+                  }
+                  onFocus={() => setFocusedInput("editContext")}
+                  onBlur={() => setFocusedInput(null)}
+                  disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                  aria-disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
+                  placeholder="Add a description for your project..."
+                />
+              </div>
+            </div>
+
+            <div style={styles.settingsSection}>
+              <h3 style={styles.sectionTitle}>
+                <UsersIcon style={{ width: "1rem", height: "1rem", marginRight: "0.5rem", display: "inline-block" }} />
+                Collaborators ({projectCollaborators.length})
+              </h3>
+
+              {!selectedSettingsProject.is_owner && userRole !== "admin" && (
+                <div style={styles.readOnlyMessage}>
+                  <strong>View Only:</strong> Only project owners and managers can add or remove collaborators.
+                </div>
+              )}
+
+              <div style={styles.collaboratorsList}>
+                {projectCollaborators.length === 0 ? (
+                  <div style={{ 
+                    textAlign: "center", 
+                    padding: "2rem", 
+                    color: "#6b7280",
+                    fontSize: "0.875rem"
+                  }}>
+                    No collaborators yet
+                  </div>
+                ) : (
+                  projectCollaborators.map((collaborator) => (
+                    <div key={collaborator._id || collaborator.email} style={styles.collaboratorItem}>
+                      <div style={styles.collaboratorInfo}>
+                        <div style={styles.collaboratorAvatar}>
+                          {collaborator.username ? collaborator.username.charAt(0).toUpperCase() : "?"}
+                        </div>
+                        <div style={styles.collaboratorDetails}>
+                          <div style={styles.collaboratorName}>
+                            {collaborator.username || "Unknown User"}
+                          </div>
+                          <div style={styles.collaboratorEmail}>
+                            {collaborator.email}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {(selectedSettingsProject.is_owner || userRole === "admin") && (
+                        <button
+                          style={
+                            hoveredButton === `remove-${collaborator._id}`
+                              ? { ...styles.removeButton, ...styles.removeButtonHover }
+                              : styles.removeButton
+                          }
+                          onClick={() => handleRemoveCollaborator(collaborator._id)}
+                          onMouseEnter={() => setHoveredButton(`remove-${collaborator._id}`)}
+                          onMouseLeave={() => setHoveredButton(null)}
+                          title="Remove collaborator"
+                          aria-label={`Remove collaborator ${collaborator.username}`}
+                        >
+                          <TrashIcon />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {(selectedSettingsProject.is_owner || userRole === "admin") && (
+                <div style={styles.addCollaboratorRow}>
+                  <input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={newCollaboratorEmail}
+                    onChange={(e) => setNewCollaboratorEmail(e.target.value)}
+                    style={
+                      focusedInput === "newCollab"
+                        ? { ...styles.addCollaboratorInput, borderColor: "#3b82f6", boxShadow: "0 0 0 1px #3b82f6" }
+                        : styles.addCollaboratorInput
+                    }
+                    onFocus={() => setFocusedInput("newCollab")}
+                    onBlur={() => setFocusedInput(null)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCollaborator();
+                      }
+                    }}
+                    aria-label="Add collaborator email"
+                  />
+                  <button
+                    style={
+                      hoveredButton === "add-collab"
+                        ? { ...styles.addButton, ...styles.addButtonHover }
+                        : styles.addButton
+                    }
+                    onClick={handleAddCollaborator}
+                    onMouseEnter={() => setHoveredButton("add-collab")}
+                    onMouseLeave={() => setHoveredButton(null)}
+                    disabled={!newCollaboratorEmail.trim()}
+                    aria-label="Add collaborator"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "1rem", borderTop: "1px solid #e5e7eb" }}>
+              <button
+                style={
+                  hoveredButton === "cancel-settings"
+                    ? { ...styles.cancelButton, ...styles.cancelButtonHover }
+                    : styles.cancelButton
+                }
+                onClick={handleCloseSettings}
+                onMouseEnter={() => setHoveredButton("cancel-settings")}
+                onMouseLeave={() => setHoveredButton(null)}
+                aria-label="Cancel settings"
+              >
+                Cancel
+              </button>
+              
+              {(selectedSettingsProject.is_owner || userRole === "admin") && (
+                <button
+                  style={
+                    hoveredButton === "save-settings"
+                      ? { ...styles.saveButton, ...styles.saveButtonHover }
+                      : styles.saveButton
+                  }
+                  onClick={handleSaveSettings}
+                  onMouseEnter={() => setHoveredButton("save-settings")}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  disabled={isLoadingSettings || !editedProjectName.trim()}
+                  aria-label="Save settings"
+                >
+                  {isLoadingSettings ? "Saving..." : "Save Changes"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Main Dashboard Component
+function Dashboard({ user }) {
+  const navigate = useNavigate();
+  
+  // State variables
+  const [projects, setProjects] = useState([]);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [projectContext, setProjectContext] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [hoveredButton, setHoveredButton] = useState(null);
+  const [focusedInput, setFocusedInput] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [projectLanguage, setProjectLanguage] = useState("en");
+  
+  const [selectedSettingsProject, setSelectedSettingsProject] = useState(null);
+  const [isSettingsPopupOpen, setIsSettingsPopupOpen] = useState(false);
+  const [editedProjectName, setEditedProjectName] = useState("");
+  const [editedProjectContext, setEditedProjectContext] = useState("");
+  const [editedProjectLanguage, setEditedProjectLanguage] = useState("en");
+  const [projectCollaborators, setProjectCollaborators] = useState([]);
+  const [newCollaboratorEmail, setNewCollaboratorEmail] = useState("");
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  
+  const [projectModels, setProjectModels] = useState({});
+  const [userRole, setUserRole] = useState("user");
+  const [canCreateProjects, setCanCreateProjects] = useState(false);
+  const [isManager, setIsManager] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Check user role and permissions
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const response = await api.get("/check_session")
-        const userData = response.data
-        setUserRole(userData.role || "user")
-        setCanCreateProjects(userData.can_create_projects || false)
-        setIsManager(userData.is_manager || false)
-        setIsAdmin(userData.is_admin || false)
+        const response = await api.get("/check_session");
+        const userData = response.data;
+        setUserRole(userData.role || "user");
+        setCanCreateProjects(userData.can_create_projects || false);
+        setIsManager(userData.is_manager || false);
+        setIsAdmin(userData.is_admin || false);
       } catch (error) {
-        console.error("Failed to check user role:", error)
+        console.error("Failed to check user role:", error);
       }
-    }
+    };
 
-    checkUserRole()
-  }, [])
+    checkUserRole();
+  }, []);
 
+  // Fetch projects
   useEffect(() => {
-    fetchProjects()
-  }, [])
+    fetchProjects();
+  }, []);
 
-  // NEW: Fetch AI model info for each project
+  // Window resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Fetch project model info
   const fetchProjectModelInfo = async (projectId) => {
     try {
-      console.log(`🔍 Fetching AI model info for project: ${projectId}`)
-      
-      // Try the LLM settings endpoint first
+      // Try LLM settings endpoint first
       try {
-        const llmResponse = await api.get(`/project_llm_settings/${projectId}`)
-        console.log(`📡 LLM Settings Response for project ${projectId}:`, llmResponse.data)
-        
-        if (llmResponse.data && llmResponse.data.effective_service) {
-          const modelInfo = {
-            effective_service: llmResponse.data.effective_service,
-            service_display_name: llmResponse.data.effective_service === 'claude' ? 'Claude AI' : 'Local RAG'
-          }
-          console.log(`✅ Setting model info for ${projectId}:`, modelInfo)
+        const llmResponse = await api.get(`/project_llm_settings/${projectId}`);
+        if (llmResponse.data?.effective_service) {
           setProjectModels(prev => ({
             ...prev,
-            [projectId]: modelInfo
-          }))
-          return // Success, exit early
+            [projectId]: {
+              effective_service: llmResponse.data.effective_service,
+              service_display_name: llmResponse.data.effective_service === 'claude' ? 
+                'Claude AI' : 'Local RAG'
+            }
+          }));
+          return;
         }
       } catch (llmError) {
-        console.log(`⚠️ LLM settings endpoint failed for ${projectId}:`, llmError.response?.status)
+        console.log("LLM settings endpoint failed:", llmError);
       }
       
-      // Fallback: Try the regular project endpoint
-      const response = await api.get(`/projects/${projectId}`)
-      console.log(`📡 Regular Project Response for project ${projectId}:`, response.data)
+      // Fallback to project endpoint
+      const response = await api.get(`/projects/${projectId}`);
+      const projectData = response.data.project || response.data;
       
-      const projectData = response.data.project || response.data
-      
-      if (projectData && projectData.effective_service) {
-        const modelInfo = {
-          effective_service: projectData.effective_service,
-          service_display_name: projectData.service_display_name || 
-            (projectData.effective_service === 'claude' ? 'Claude AI' : 'Local RAG')
-        }
-        console.log(`✅ Setting model info for ${projectId}:`, modelInfo)
+      if (projectData?.effective_service) {
         setProjectModels(prev => ({
           ...prev,
-          [projectId]: modelInfo
-        }))
+          [projectId]: {
+            effective_service: projectData.effective_service,
+            service_display_name: projectData.service_display_name || 
+              (projectData.effective_service === 'claude' ? 'Claude AI' : 'Local RAG')
+          }
+        }));
       } else {
-        console.log(`⚠️ No effective_service found for project ${projectId} - using default`)
+        // Default to local
         setProjectModels(prev => ({
           ...prev,
           [projectId]: {
             effective_service: 'local',
             service_display_name: 'Local RAG'
           }
-        }))
+        }));
       }
     } catch (error) {
-      console.error(`❌ Error fetching model info for project ${projectId}:`, error)
-      
-      // If all attempts fail, set default to local
+      console.error("Error fetching model info:", error);
+      // Set default on error
       setProjectModels(prev => ({
         ...prev,
         [projectId]: {
           effective_service: 'local',
           service_display_name: 'Local RAG'
         }
-      }))
+      }));
     }
-  }
+  };
 
-  // Fetch projects based on user role
+  // Fetch projects
   const fetchProjects = async () => {
     try {
-      const response = await api.get("/projects")
-      console.log("Fetched projects:", response.data)
-      const fetchedProjects = response.data.projects || []
-      setProjects(fetchedProjects)
-      setCanCreateProjects(response.data.can_create_projects || false)
+      const response = await api.get("/projects");
+      const fetchedProjects = response.data.projects || [];
+      setProjects(fetchedProjects);
+      setCanCreateProjects(response.data.can_create_projects || false);
 
-      // NEW: Fetch AI model info for each project
+      // Fetch model info for each project
       fetchedProjects.forEach(project => {
-        fetchProjectModelInfo(project.id)
-      })
+        fetchProjectModelInfo(project.id);
+      });
     } catch (error) {
-      console.error("Error fetching projects:", error)
+      console.error("Error fetching projects:", error);
     }
-  }
+  };
 
-  // Fetch available users for project assignment (managers only)
+  // Fetch available users
   const fetchAvailableUsers = async () => {
-    if (!isManager && !isAdmin) return
+    if (!isManager && !isAdmin) return;
 
-    setIsLoadingUsers(true)
+    setIsLoadingUsers(true);
     try {
-      const response = await api.get("/manager/users")
-      setAvailableUsers(response.data.users || [])
+      const response = await api.get("/manager/users");
+      setAvailableUsers(response.data.users || []);
     } catch (error) {
-      console.error("Error fetching users:", error)
+      console.error("Error fetching users:", error);
     } finally {
-      setIsLoadingUsers(false)
+      setIsLoadingUsers(false);
     }
-  }
+  };
 
-  // Handle project creation with user assignment for managers
+  // Fetch project collaborators
+  const fetchProjectCollaborators = async (projectId) => {
+    try {
+      const response = await api.get(`/projects/${projectId}/collaborators`);
+      setProjectCollaborators(response.data.collaborators || []);
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      setProjectCollaborators([]);
+    }
+  };
+
+  // Handle opening settings
+  const handleOpenSettings = async (project, event) => {
+    event.stopPropagation();
+    
+    setIsLoadingSettings(true);
+    setSelectedSettingsProject(project);
+    setEditedProjectName(project.name);
+    setEditedProjectContext(project.context || "");
+    setEditedProjectLanguage(project.language || "en");
+    setIsSettingsPopupOpen(true);
+    
+    await fetchProjectCollaborators(project.id);
+    
+    if (isManager || isAdmin) {
+      await fetchAvailableUsers();
+    }
+    
+    setIsLoadingSettings(false);
+  };
+
+  // Handle project creation
   const handleCreateProject = async () => {
     if (!canCreateProjects) {
-      alert("You don't have permission to create projects. Please contact your manager.")
-      return
+      alert("You don't have permission to create projects");
+      return;
     }
 
     try {
       const projectData = {
         name: newProjectName,
         context: projectContext,
-        assigned_users: selectedUsers, // Only for managers
-      }
+        language: projectLanguage,
+        assigned_users: selectedUsers,
+      };
 
-      console.log("Creating project with data:", projectData)
+      const endpoint = isManager || isAdmin ? "/manager/projects" : "/projects";
+      const response = await api.post(endpoint, projectData);
+      const newProject = response.data.project;
 
-      // Use different endpoint for managers who can assign users
-      const endpoint = isManager || isAdmin ? "/manager/projects" : "/projects"
-      const response = await api.post(endpoint, projectData)
+      await fetchProjects();
+      setNewProjectName("");
+      setProjectContext("");
+      setProjectLanguage("en");
+      setSelectedUsers([]);
+      setIsDialogOpen(false);
 
-      console.log("Project created successfully:", response.data)
-      const newProject = response.data.project
-
-      // Refresh project list
-      await fetchProjects()
-
-      // Reset form fields
-      setNewProjectName("")
-      setProjectContext("")
-      setSelectedUsers([])
-      setIsDialogOpen(false)
-
-      // Navigate to the new project
-      if (newProject && newProject.id) {
-        console.log("Navigating to project:", newProject.id)
-        navigate(`/project/${newProject.id}`)
-      } else {
-        console.error("Project ID not available for navigation")
+      if (newProject?.id) {
+        navigate(`/project/${newProject.id}`);
       }
     } catch (error) {
-      console.error("Error creating project:", error)
-      alert("Failed to create project. Please try again. " + (error.response?.data?.error || error.message || ""))
+      console.error("Error creating project:", error);
+      alert("Failed to create project. " + (error.response?.data?.error || error.message || ""));
     }
-  }
+  };
 
-  // Handle user selection for project assignment
-  const handleUserSelection = (username, checked) => {
-    if (checked) {
-      setSelectedUsers([...selectedUsers, username])
-    } else {
-      setSelectedUsers(selectedUsers.filter((user) => user !== username))
-    }
-  }
-
-  // Remove selected user
-  const removeSelectedUser = (username) => {
-    setSelectedUsers(selectedUsers.filter((user) => user !== username))
-  }
-
+  // Handle logout
   const handleLogout = async () => {
     try {
-      await api.post("/logout")
-      window.location.href = "/login"
+      await api.post("/logout");
+      navigate("/login");
     } catch (error) {
-      console.error("Logout failed:", error)
-      window.location.href = "/login"
+      console.error("Logout failed:", error);
+      navigate("/login");
     }
-  }
-
-  // Get role display information
-  const getRoleDisplay = () => {
-    switch (userRole) {
-      case "admin":
-        return { text: "Administrator", style: styles.adminRoleIndicator }
-      case "manager":
-        return { text: "Manager", style: styles.managerRoleIndicator }
-      default:
-        return { text: "User", style: styles.roleIndicator }
-    }
-  }
-
-  // NEW: Helper functions for AI model display
-  const getAIModelIcon = (effectiveService) => {
-    if (effectiveService === 'claude') {
-      return <KeyIcon style={styles.aiModelIcon} />
-    }
-    return <CpuIcon style={styles.aiModelIcon} />
-  }
-
-  const getAIModelBadgeStyle = (effectiveService) => {
-    if (effectiveService === 'claude') {
-      return { ...styles.aiModelBadge, ...styles.claudeBadge }
-    }
-    return { ...styles.aiModelBadge, ...styles.localBadge }
-  }
-
-  const getAIModelDisplayName = (effectiveService) => {
-    return effectiveService === 'claude' ? 'Claude AI' : 'Local RAG'
-  }
+  };
 
   // Filter projects based on search query
-  const filteredProjects = projects.filter((project) => {
-    if (!searchQuery) return true
-    return project.name.toLowerCase().includes(searchQuery.toLowerCase())
-  })
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => 
+      !searchQuery || 
+      project.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [projects, searchQuery]);
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerContainer}>
-          <img src={logoImage || "/placeholder.svg"} alt="TestGen Logo" style={styles.logo} />
-          <div style={styles.navLinks}>
-            {isAdmin && (
-              <button
-                style={styles.navLink}
-                onClick={() => navigate("/admin")}
-                onMouseEnter={() => setHoveredButton("admin")}
-                onMouseLeave={() => setHoveredButton(null)}
-              >
-                Admin Panel
-              </button>
-            )}
-
-            {isManager && !isAdmin && (
-              <button
-                style={styles.navLink}
-                onClick={() => navigate("/manager")}
-                onMouseEnter={() => setHoveredButton("manager")}
-                onMouseLeave={() => setHoveredButton(null)}
-              >
-                Manager Panel
-              </button>
-            )}
-            <button
-              style={styles.navLink}
-              onClick={handleLogout}
-              onMouseEnter={() => setHoveredButton("logout")}
-              onMouseLeave={() => setHoveredButton(null)}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header 
+        userRole={userRole} 
+        isAdmin={isAdmin} 
+        isManager={isManager} 
+        handleLogout={handleLogout} 
+        navigate={navigate}
+      />
 
       <main style={styles.mainContent}>
         <div style={styles.titleRow}>
           <div style={styles.titleSection}>
-            <h2 style={styles.pageTitle}>Projects</h2>
+            <h1 style={styles.pageTitle}>Projects</h1>
           </div>
 
           {canCreateProjects ? (
             <button
               onClick={() => {
-                setIsDialogOpen(true)
-                if (isManager || isAdmin) {
-                  fetchAvailableUsers()
-                }
+                setIsDialogOpen(true);
+                if (isManager || isAdmin) fetchAvailableUsers();
               }}
               style={
                 hoveredButton === "newProject"
@@ -905,23 +1884,22 @@ function Dashboard({ user }) {
               }
               onMouseEnter={() => setHoveredButton("newProject")}
               onMouseLeave={() => setHoveredButton(null)}
+              aria-label="Create new project"
             >
               <PlusIcon style={styles.buttonIcon} />
               New Project
             </button>
           ) : (
-            <div style={styles.newProjectButtonDisabled}>
+            <div style={styles.newProjectButtonDisabled} aria-label="Create project disabled">
               <PlusIcon style={styles.buttonIcon} />
               New Project
             </div>
           )}
         </div>
 
-        {/* Info alert for regular users */}
         {!canCreateProjects && userRole === "user" && (
-          <div style={styles.infoAlert}>
-            <strong>Info:</strong> Only managers can create projects. You have access to projects where you are assigned
-            as a collaborator.
+          <div style={styles.infoAlert} role="alert">
+            <strong>Info:</strong> Only managers can create projects. You have access to projects where you are assigned as a collaborator.
           </div>
         )}
 
@@ -934,221 +1912,34 @@ function Dashboard({ user }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={
-                focusedInput === "search" ? { ...styles.searchInput, ...styles.searchInputFocus } : styles.searchInput
+                focusedInput === "search" 
+                  ? { ...styles.searchInput, ...styles.searchInputFocus } 
+                  : styles.searchInput
               }
               onFocus={() => setFocusedInput("search")}
               onBlur={() => setFocusedInput(null)}
+              aria-label="Search projects"
             />
           </div>
         </div>
 
-        {/* Enhanced Project Creation Dialog for Managers */}
-        {isDialogOpen && (
-          <div style={styles.modal}>
-            <div style={styles.modalOverlay} onClick={() => setIsDialogOpen(false)}></div>
-            <div style={styles.modalContent}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Create New Project</h3>
-                <p style={styles.modalDesc}>
-                  {isManager || isAdmin
-                    ? "Create a project and assign users to collaborate on it."
-                    : "Create a new project for test case generation."}
-                </p>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel} htmlFor="project-name">
-                  Project Name
-                </label>
-                <input
-                  id="project-name"
-                  style={focusedInput === "projectName" ? { ...styles.input, ...styles.inputFocus } : styles.input}
-                  placeholder="Enter project name"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onFocus={() => setFocusedInput("projectName")}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel} htmlFor="project-context">
-                  Project Description
-                </label>
-                <textarea
-                  id="project-context"
-                  rows={4}
-                  style={
-                    focusedInput === "projectContext"
-                      ? { ...styles.textarea, ...styles.textareaFocus }
-                      : styles.textarea
-                  }
-                  placeholder="Describe the project's functional requirements..."
-                  value={projectContext}
-                  onChange={(e) => setProjectContext(e.target.value)}
-                  onFocus={() => setFocusedInput("projectContext")}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              </div>
-
-              {/* User Assignment Section for Managers */}
-              {(isManager || isAdmin) && (
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Assign Users</label>
-                  <p style={styles.helperText}>Select users to assign as collaborators on this project.</p>
-
-                  {isLoadingUsers ? (
-                    <div style={styles.loadingContainer}>
-                      <LoadingSpinner style={styles.loadingSpinner} />
-                      <span style={styles.loadingText}>Loading users...</span>
-                    </div>
-                  ) : (
-                    <>
-                      {/* User Search Bar */}
-                      {availableUsers.length > 0 && (
-                        <div style={{ ...styles.searchContainer, marginBottom: "0.75rem" }}>
-                          <SearchIcon style={styles.searchIcon} />
-                          <input
-                            type="text"
-                            placeholder="Search users..."
-                            value={userSearchQuery}
-                            onChange={(e) => setUserSearchQuery(e.target.value)}
-                            style={
-                              focusedInput === "userSearch"
-                                ? { ...styles.searchInput, ...styles.searchInputFocus }
-                                : styles.searchInput
-                            }
-                            onFocus={() => setFocusedInput("userSearch")}
-                            onBlur={() => setFocusedInput(null)}
-                          />
-                        </div>
-                      )}
-
-                      <div style={styles.userSelectionContainer}>
-                        {availableUsers.length === 0 ? (
-                          <p style={styles.emptyUsersText}>No users available for assignment</p>
-                        ) : (
-                          (() => {
-                            const filteredUsers = availableUsers.filter(
-                              (user) =>
-                                !userSearchQuery ||
-                                (user.email && user.email.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
-                                (user.username && user.username.toLowerCase().includes(userSearchQuery.toLowerCase())),
-                            )
-
-                            return filteredUsers.length === 0 ? (
-                              <p style={styles.emptyUsersText}>No users found matching "{userSearchQuery}"</p>
-                            ) : (
-                              filteredUsers.map((user) => (
-                                <div
-                                  key={user.username}
-                                  style={styles.userCheckbox}
-                                  onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.05)")}
-                                  onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    style={styles.checkbox}
-                                    checked={selectedUsers.includes(user.username)}
-                                    onChange={(e) => handleUserSelection(user.username, e.target.checked)}
-                                  />
-                                  <span style={styles.userLabel}>{user.email || user.username}</span>
-                                </div>
-                              ))
-                            )
-                          })()
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Display selected users */}
-                  {selectedUsers.length > 0 && (
-                    <div style={styles.selectedUsersDisplay}>
-                      {selectedUsers.map((username) => (
-                        <span key={username} style={styles.userTag}>
-                          {username}
-                          <button
-                            type="button"
-                            style={styles.removeUserButton}
-                            onClick={() => removeSelectedUser(username)}
-                            onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
-                            onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div style={styles.modalFooter}>
-                <div></div>
-                <div style={styles.modalFooterButtons}>
-                  <button
-                    type="button"
-                    style={
-                      hoveredButton === "cancel"
-                        ? { ...styles.outlineButton, ...styles.outlineButtonHover }
-                        : styles.outlineButton
-                    }
-                    onClick={() => {
-                      setIsDialogOpen(false)
-                      setNewProjectName("")
-                      setProjectContext("")
-                      setSelectedUsers([])
-                      setUserSearchQuery("")
-                    }}
-                    onMouseEnter={() => setHoveredButton("cancel")}
-                    onMouseLeave={() => setHoveredButton(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    style={
-                      !newProjectName.trim()
-                        ? styles.primaryButtonDisabled
-                        : hoveredButton === "create"
-                          ? { ...styles.primaryButton, ...styles.primaryButtonHover }
-                          : styles.primaryButton
-                    }
-                    onClick={handleCreateProject}
-                    disabled={!newProjectName.trim()}
-                    onMouseEnter={() => setHoveredButton("create")}
-                    onMouseLeave={() => setHoveredButton(null)}
-                  >
-                    Create Project
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Projects Grid */}
         <div style={styles.projectGrid}>
           {filteredProjects.length === 0 ? (
             <div style={styles.emptyState}>
               <FolderOpenIcon style={styles.emptyIcon} />
-              <h3 style={styles.emptyTitle}>No projects found</h3>
+              <h2 style={styles.emptyTitle}>No projects found</h2>
               <p style={styles.emptyText}>
                 {searchQuery
                   ? "Try a different search term."
                   : userRole === "user"
-                    ? "You haven't been assigned to any projects yet. Contact your manager if you need access to projects."
+                    ? "You haven't been assigned to any projects yet."
                     : "Start by creating a new project."}
               </p>
               {!searchQuery && canCreateProjects && (
                 <button
-                  type="button"
                   onClick={() => {
-                    setIsDialogOpen(true)
-                    if (isManager || isAdmin) {
-                      fetchAvailableUsers()
-                    }
+                    setIsDialogOpen(true);
+                    if (isManager || isAdmin) fetchAvailableUsers();
                   }}
                   style={
                     hoveredButton === "emptyNew"
@@ -1157,6 +1948,7 @@ function Dashboard({ user }) {
                   }
                   onMouseEnter={() => setHoveredButton("emptyNew")}
                   onMouseLeave={() => setHoveredButton(null)}
+                  aria-label="Create new project"
                 >
                   <PlusIcon style={styles.buttonIcon} />
                   New Project
@@ -1164,192 +1956,78 @@ function Dashboard({ user }) {
               )}
             </div>
           ) : (
-            filteredProjects.map((project) => {
-              // NEW: Get AI model info for this project
-              const modelInfo = projectModels[project.id]
-              
-              return (
-                <div
-                  key={project.id}
-                  style={hoveredCard === project.id ? { ...styles.projectCard, ...styles.cardHover } : styles.projectCard}
-                  onClick={() => navigate(`/project/${project.id}`)}
-                  onMouseEnter={() => setHoveredCard(project.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <div style={styles.cardHeader}>
-                    <h3 style={styles.cardTitle}>{project.name}</h3>
-                    <button
-                      style={
-                        hoveredButton === `menu-${project.id}`
-                          ? { ...styles.cardMenuButton, ...styles.cardMenuButtonHover }
-                          : styles.cardMenuButton
-                      }
-                      onMouseEnter={() => setHoveredButton(`menu-${project.id}`)}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      <DotsIcon />
-                    </button>
-                  </div>
-
-                  <div style={styles.cardContent}>
-                    <div style={styles.cardRow}>
-                      <div style={styles.cardItem}>
-                        <CalendarIcon style={styles.cardIcon} />
-                        {new Date(project.created_at).toISOString().split("T")[0]}
-                      </div>
-                      <div style={styles.cardItem}>
-                        <DocumentIcon style={styles.cardIcon} />
-                        {project.test_count || 0} tests
-                      </div>
-                    </div>
-                    <div style={styles.cardRow}>
-                      <div style={styles.cardItem}>
-                        <UsersIcon style={styles.cardIcon} />
-                        {project.collaborators?.length || 0} collaborators
-                      </div>
-                      {/* NEW: AI Model Badge */}
-                      {modelInfo ? (
-                        <div style={getAIModelBadgeStyle(modelInfo.effective_service)}>
-                          {getAIModelIcon(modelInfo.effective_service)}
-                          {getAIModelDisplayName(modelInfo.effective_service)}
-                        </div>
-                      ) : (
-                        // Show default badge while loading or if API call failed
-                        <div style={getAIModelBadgeStyle('local')}>
-                          {getAIModelIcon('local')}
-                          {getAIModelDisplayName('local')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={styles.cardFooter}>
-                    <div
-                      style={
-                        project.is_owner
-                          ? { ...styles.statusBadge, ...styles.ownerBadge }
-                          : { ...styles.statusBadge, ...styles.collaboratorBadge }
-                      }
-                    >
-                      {project.is_owner ? "Owner" : "Collaborator"}
-                    </div>
-                    <div style={styles.lastUpdated}>
-                      <ClockIcon style={styles.lastUpdatedIcon} />
-                      Last updated 2 days ago
-                    </div>
-                  </div>
-                </div>
-              )
-            })
+            filteredProjects.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                modelInfo={projectModels[project.id]}
+                hoveredCard={hoveredCard}
+                setHoveredCard={setHoveredCard}
+                hoveredButton={hoveredButton}
+                setHoveredButton={setHoveredButton}
+                handleOpenSettings={handleOpenSettings}
+              />
+            ))
           )}
         </div>
+
+        <CreateProjectModal
+          isDialogOpen={isDialogOpen}
+          setIsDialogOpen={setIsDialogOpen}
+          newProjectName={newProjectName}
+          setNewProjectName={setNewProjectName}
+          projectContext={projectContext}
+          setProjectContext={setProjectContext}
+          projectLanguage={projectLanguage}
+          setProjectLanguage={setProjectLanguage}
+          userSearchQuery={userSearchQuery}
+          setUserSearchQuery={setUserSearchQuery}
+          selectedUsers={selectedUsers}
+          setSelectedUsers={setSelectedUsers}
+          isManager={isManager}
+          isAdmin={isAdmin}
+          canCreateProjects={canCreateProjects}
+          focusedInput={focusedInput}
+          setFocusedInput={setFocusedInput}
+          hoveredButton={hoveredButton}
+          setHoveredButton={setHoveredButton}
+          handleCreateProject={handleCreateProject}
+          availableUsers={availableUsers}
+          isLoadingUsers={isLoadingUsers}
+          fetchAvailableUsers={fetchAvailableUsers}
+        />
+
+        <ProjectSettingsModal
+          selectedSettingsProject={selectedSettingsProject}
+          setSelectedSettingsProject={setSelectedSettingsProject}
+          isSettingsPopupOpen={isSettingsPopupOpen}
+          setIsSettingsPopupOpen={setIsSettingsPopupOpen}
+          editedProjectName={editedProjectName}
+          setEditedProjectName={setEditedProjectName}
+          editedProjectContext={editedProjectContext}
+          setEditedProjectContext={setEditedProjectContext}
+          editedProjectLanguage={editedProjectLanguage}
+          setEditedProjectLanguage={setEditedProjectLanguage}
+          projectCollaborators={projectCollaborators}
+          setProjectCollaborators={setProjectCollaborators}
+          newCollaboratorEmail={newCollaboratorEmail}
+          setNewCollaboratorEmail={setNewCollaboratorEmail}
+          isLoadingSettings={isLoadingSettings}
+          setIsLoadingSettings={setIsLoadingSettings}
+          userRole={userRole}
+          hoveredButton={hoveredButton}
+          setHoveredButton={setHoveredButton}
+          focusedInput={focusedInput}
+          setFocusedInput={setFocusedInput}
+          fetchProjects={fetchProjects}
+          fetchProjectCollaborators={fetchProjectCollaborators}
+          fetchAvailableUsers={fetchAvailableUsers}
+          isManager={isManager}
+          isAdmin={isAdmin}
+        />
       </main>
     </div>
-  )
+  );
 }
 
-// Icon components (simplified for brevity)
-const PlusIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-const SearchIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-const CalendarIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-const DocumentIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-const UsersIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-  </svg>
-)
-
-const ClockIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-const DotsIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-    style={{ width: "1rem", height: "1rem" }}
-  >
-    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-  </svg>
-)
-
-const FolderOpenIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path
-      fillRule="evenodd"
-      d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z"
-      clipRule="evenodd"
-    />
-    <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
-  </svg>
-)
-
-const LoadingSpinner = ({ style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path
-      style={{ opacity: 0.75 }}
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    ></path>
-  </svg>
-)
-
-// NEW: AI Model Icons
-const KeyIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
-  </svg>
-)
-
-const CpuIcon = ({ style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={style}>
-    <path d="M13 7H7v6h6V7z" />
-    <path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" />
-  </svg>
-)
-
-export default Dashboard
+export default Dashboard;

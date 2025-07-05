@@ -1052,166 +1052,204 @@ function Generate() {
   };
 
   const handleChatSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!currentMessage.trim()) return;
+  if (!currentMessage.trim()) return;
 
-    console.log("Starting chat request with message:", currentMessage);
+  console.log("Starting chat request with message:", currentMessage);
+  console.log("Current activeHistoryId:", activeHistoryId);
+  console.log("Direct chat mode:", directChatMode);
+  console.log("Generated tests length:", generatedTests?.length || 0);
+  
+  // Add user message to chat immediately
+  const userMessage = { role: "user", content: currentMessage };
+  setChatMessages(prev => [...prev, userMessage]);
+  setCurrentMessage("");
+
+  const tempId = Date.now().toString();
+  setChatMessages(prev => [...prev, { 
+    id: tempId, 
+    role: "assistant", 
+    content: "Thinking...", 
+    isPartial: true 
+  }]);
+
+  // Reset processing variables
+  processedLength = 0;
+  responseText = "";
+  updatedTestsFound = false;
+
+  try {
+    const requestData = {
+      message: userMessage.content,
+      project_id: projectId,
+      test_cases: generatedTests || "",
+      requirement_id: selectedRequirement?.id || null,
+      requirement_title: selectedRequirement?.title || newRequirementTitle,
+      requirements: requirementsDescription,
+      chat_history: chatMessages.filter(msg => !msg.isPartial),
+      direct_mode: directChatMode,
+      active_history_id: activeHistoryId,
+    };
+
+    console.log("Sending chat request with data:", {
+      message: requestData.message,
+      projectId: requestData.project_id,
+      directMode: requestData.direct_mode,
+      activeHistoryId: requestData.active_history_id,
+      testCasesLength: requestData.test_cases.length
+    });
+
+    setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
+
+    const response = await api({
+      method: 'post',
+      url: '/chat_with_assistant',
+      data: requestData,
+      responseType: 'text', // Important for SSE
+      onDownloadProgress: (progressEvent) => {
+        const text = progressEvent.event.target.responseText;
+        processSSEResponse(text);
+      }
+    });
     
-    // Add user message to chat immediately
-    const userMessage = { role: "user", content: currentMessage };
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage("");
-
-    const tempId = Date.now().toString();
-    setChatMessages(prev => [...prev, { 
-      id: tempId, 
-      role: "assistant", 
-      content: "Thinking...", 
-      isPartial: true 
-    }]);
-
-    try {
-      const requestData = {
-        message: userMessage.content,
-        project_id: projectId,
-        test_cases: generatedTests || "",
-        requirement_id: selectedRequirement?.id || null,
-        requirement_title: selectedRequirement?.title || newRequirementTitle,
-        requirements: requirementsDescription,
-        chat_history: chatMessages.filter(msg => !msg.isPartial),
-        direct_mode: directChatMode,
-        active_history_id: activeHistoryId,
-      };
-
-      console.log("Sending chat request with data:", {
-        message: requestData.message,
-        projectId: requestData.project_id,
-        directMode: requestData.direct_mode
-      });
-
-      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-
-      const response = await api({
-        method: 'post',
-        url: '/chat_with_assistant',
-        data: requestData,
-        responseType: 'text', // Important for SSE
-        onDownloadProgress: (progressEvent) => {
-          const text = progressEvent.event.target.responseText;
-          processSSEResponse(text);
-        }
-      });
+  } catch (error) {
+    console.error("Chat error:", error);
+    
+    setChatMessages(prev => {
+      const filtered = prev.filter(msg => msg.id !== tempId);
       
-    } catch (error) {
-      console.error("Chat error:", error);
-      
-      setChatMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== tempId);
-        
-        return [...filtered, {
-          role: "assistant",
-          content: `Erreur de communication avec le serveur. ${error.message || ""}`
-        }];
-      });
-    }
-  };
-
-  // Process chat response that might contain updated test cases
+      return [...filtered, {
+        role: "assistant",
+        content: `Erreur de communication avec le serveur. ${error.message || ""}`
+      }];
+    });
+  }
+};
   const processSSEResponse = (text) => {
-    // Only process the new part of the text
-    const newText = text.substring(processedLength);
-    processedLength = text.length;
+  // Only process the new part of the text
+  const newText = text.substring(processedLength);
+  processedLength = text.length;
+  
+  if (!newText) return;
+  
+  // Split by double newlines which typically separate SSE messages
+  const messages = newText.split('\n\n');
+  
+  for (const message of messages) {
+    if (!message.trim()) continue;
     
-    if (!newText) return;
-    
-    // Split by double newlines which typically separate SSE messages
-    const messages = newText.split('\n\n');
-    
-    for (const message of messages) {
-      if (!message.trim()) continue;
-      
-      // Process each line that starts with "data: "
-      const lines = message.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.replace('data: ', '');
+    // Process each line that starts with "data: "
+    const lines = message.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.replace('data: ', '');
+        
+        if (data === "[DONE]") {
+          console.log("Received DONE marker");
           
-          if (data === "[DONE]") {
-            console.log("Received DONE marker");
-            
-            // Handle any remaining response text if no test updates were found
-            if (responseText && !updatedTestsFound) {
-              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
-                role: "assistant",
-                content: responseText
-              }]);
-            }
-            continue;
+          // Handle any remaining response text if no test updates were found
+          if (responseText && !updatedTestsFound) {
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+              role: "assistant",
+              content: responseText
+            }]);
           }
           
-          try {
-            const parsed = JSON.parse(data);
+          // Reset processing variables for next chat
+          processedLength = 0;
+          responseText = "";
+          updatedTestsFound = false;
+          continue;
+        }
+        
+        try {
+          const parsed = JSON.parse(data);
+          
+          // Handle updated test cases - IMPROVED HANDLING
+          if (parsed.updated_test_cases) {
+            updatedTestsFound = true;
+            const updatedTests = parsed.updated_test_cases;
             
-            // Handle updated test cases
-            if (parsed.updated_test_cases) {
-              updatedTestsFound = true;
-              const updatedTests = parsed.updated_test_cases;
-              
-              console.log("Received updated test cases from chat");
-              
-              setGeneratedTests(updatedTests);
-              setEditedTests(updatedTests);
-              
-              if (isEditing) setIsEditing(false);
-              
-              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-                role: "assistant", 
-                content: parsed.confirmation || "✅ Modifications appliquées avec succès." 
-              }]);
-              
-              // Refresh history after AI modification
-              setTimeout(() => {
-                fetchHistory();
-              }, 500);
+            console.log("Received updated test cases from chat");
+            console.log("Updated test cases length:", updatedTests.length);
+            console.log("First 100 chars:", updatedTests.substring(0, 100));
+            
+            // Update the test cases in the UI immediately
+            setGeneratedTests(updatedTests);
+            setEditedTests(updatedTests);
+            
+            // Exit editing mode if we're in it
+            if (isEditing) {
+              setIsEditing(false);
+              console.log("Exited editing mode due to AI update");
             }
-            else if (parsed.chunk) {
-              responseText += parsed.chunk;
+            
+            // Show confirmation message
+            const confirmationMessage = parsed.confirmation || "✅ Modifications appliquées avec succès.";
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+              role: "assistant", 
+              content: confirmationMessage
+            }]);
+            
+            // Refresh history after AI modification
+            setTimeout(() => {
+              console.log("Refreshing history after AI modification");
+              fetchHistory();
+            }, 500);
+          }
+          else if (parsed.chunk) {
+            responseText += parsed.chunk;
+            
+            // Update the streaming message
+            setChatMessages(prev => {
+              const assistantMsg = prev.find(msg => 
+                msg.role === "assistant" && msg.isPartial
+              );
               
-              setChatMessages(prev => {
-                const assistantMsg = prev.find(msg => 
-                  msg.role === "assistant" && msg.isPartial
+              if (assistantMsg) {
+                return prev.map(msg => 
+                  (msg.role === "assistant" && msg.isPartial) 
+                    ? { ...msg, content: responseText } 
+                    : msg
                 );
-                
-                if (assistantMsg) {
-                  return prev.map(msg => 
-                    (msg.role === "assistant" && msg.isPartial) 
-                      ? { ...msg, content: responseText } 
-                      : msg
-                  );
-                } else {
-                  return [...prev, { 
-                    role: "assistant", 
-                    content: responseText, 
-                    isPartial: true 
-                  }];
-                }
-              });
-            }
-            else if (parsed.error) {
-              console.error("Server error:", parsed.error);
-              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-                role: "assistant", 
-                content: `Error: ${parsed.error}` 
-              }]);
-            }
-          } catch (error) {
-            console.warn("Error parsing SSE message:", error, "Raw data:", data);
+              } else {
+                return [...prev, { 
+                  role: "assistant", 
+                  content: responseText, 
+                  isPartial: true 
+                }];
+              }
+            });
           }
+          else if (parsed.error) {
+            console.error("Server error:", parsed.error);
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+              role: "assistant", 
+              content: `Erreur: ${parsed.error}` 
+            }]);
+          }
+          else if (parsed.complete) {
+            console.log("Chat response complete");
+            // Remove any partial messages and finalize
+            setChatMessages(prev => {
+              const filtered = prev.filter(msg => !msg.isPartial);
+              if (responseText && !updatedTestsFound) {
+                return [...filtered, {
+                  role: "assistant",
+                  content: responseText
+                }];
+              }
+              return filtered;
+            });
+          }
+        } catch (error) {
+          console.warn("Error parsing SSE message:", error, "Raw data:", data);
         }
       }
     }
-  };
+  }
+};
 
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
