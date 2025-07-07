@@ -1009,10 +1009,6 @@ const ProjectCard = ({
         >
           {project.is_owner ? "Owner" : "Collaborator"}
         </div>
-        <div style={styles.lastUpdated}>
-          <ClockIcon style={styles.lastUpdatedIcon} />
-          Last updated 2 days ago
-        </div>
       </div>
     </div>
   );

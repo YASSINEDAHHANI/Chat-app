@@ -2,8 +2,6 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import api from "../api"
 
-
-
 const styles = {
   // Your existing styles here - keeping them unchanged
   container: {
@@ -658,6 +656,7 @@ const styles = {
     color: "#111827",
   },
 }
+
 const requirementCategories = [
   { value: "functionality", label: "Fonctionnalité" },
   { value: "ui", label: "Interface utilisateur" },
@@ -673,12 +672,29 @@ const getCategoryLabel = (value) => {
   return category ? category.label : value;
 }
 
-// Helper function to detect API key type
-const detectApiKeyType = (apiKey) => {
-  if (!apiKey) return 'unknown';
-  if (apiKey.startsWith('AIza')) return 'gemini';
-  if (apiKey.startsWith('sk-ant-')) return 'claude';
-  return 'unknown';
+// Updated service helper functions (ONLY CLAUDE AND LOCAL)
+const getServiceColor = (service) => {
+  switch(service) {
+    case 'claude': return '#7c3aed';
+    case 'local': return '#2563eb';
+    default: return '#dc2626'; // Red for no service
+  }
+};
+
+const getServiceBackgroundColor = (service) => {
+  switch(service) {
+    case 'claude': return 'rgba(124, 58, 237, 0.1)';
+    case 'local': return 'rgba(37, 99, 235, 0.1)';
+    default: return 'rgba(220, 38, 38, 0.1)'; // Red for no service
+  }
+};
+
+const getServiceDisplayName = (service) => {
+  switch(service) {
+    case 'claude': return 'Claude AI';
+    case 'local': return 'Local RAG';
+    default: return 'Non configuré';
+  }
 };
 
 function Generate() {
@@ -709,7 +725,8 @@ function Generate() {
   const [directChatMode, setDirectChatMode] = useState(true)
   const [activeHistoryId, setActiveHistoryId] = useState(null)
   const [focusedInput, setFocusedInput] = useState(null)
-  const [currentApiService, setCurrentApiService] = useState('unknown')
+  const [currentApiService, setCurrentApiService] = useState('none')
+  const [abortController, setAbortController] = useState(null);
 
   // Keep track of processed text length to avoid reprocessing
   let processedLength = 0;
@@ -751,26 +768,37 @@ function Generate() {
     fetchRequirements()
   }, [projectId, requirementId])
 
-  // Detect global API service type
+  // Updated useEffect for API service detection - PROJECT LEVEL
   useEffect(() => {
-    const checkApiService = async () => {
+    const checkProjectApiService = async () => {
+      if (!projectId) {
+        setCurrentApiService('none');
+        return;
+      }
+
       try {
-        const response = await api.get('/check_global_api_service');
-        if (response.data.configured) {
-          setCurrentApiService(response.data.service);
-          console.log(`Global ${response.data.service_name} configured`);
-        } else {
-          console.log("No global API service configured");
-          setCurrentApiService('none');
-        }
+        const response = await api.get(`/check_api_service?project_id=${projectId}`);
+        const data = response.data;
+        
+        setCurrentApiService(data.service || 'none');
+        
+        console.log(`AI Service for project ${projectId}:`, {
+          service: data.service,
+          serviceName: data.service_name,
+          message: data.message,
+          projectConfigured: data.project_configured
+        });
+        
       } catch (error) {
-        console.log("Could not detect global API service:", error);
-        setCurrentApiService('unknown');
+        console.error('Error checking project API service:', error);
+        setCurrentApiService('none');
       }
     };
-    
-    checkApiService(); 
-  }, []);
+
+    if (projectId) {
+      checkProjectApiService();
+    }
+  }, [projectId]); // Only depend on projectId
 
   // History useEffect - simplified version
   useEffect(() => {
@@ -881,9 +909,15 @@ function Generate() {
     setShowRequirementForm(false)
   }
 
-  // Updated handleGenerate function
+  // Updated handleGenerate function with project service validation
   const handleGenerate = async () => {
     if (!selectedRequirement && !newRequirementTitle) return;
+
+    // Check if project has AI service configured
+    if (currentApiService === 'none') {
+      alert("Aucun service IA configuré pour ce projet. Contactez votre manager pour configurer Claude API ou s'assurer que le RAG local est disponible.");
+      return;
+    }
 
     setIsGenerating(true);
     setGeneratedTests(""); // Clear previous tests
@@ -892,7 +926,7 @@ function Generate() {
       requirements: requirementsDescription,
       format_type: outputFormat,
       example_case: outputFormat === "custom" ? customFormat : "",
-      project_id: projectId,
+      project_id: projectId, // Always include project ID
     };
 
     // Add requirement information
@@ -923,7 +957,15 @@ function Generate() {
     } catch (error) {
       console.error("Error generating test cases:", error);
       const errorMessage = error.response?.data?.error || error.message || "Unknown error";
-      alert(`Error generating test cases: ${errorMessage}`);
+      
+      // Handle specific API service errors
+      if (errorMessage.includes('No AI service configured') || 
+          errorMessage.includes('Claude API not configured') ||
+          errorMessage.includes('Local RAG system not available')) {
+        alert(`${errorMessage}\n\nContactez votre manager pour configurer le service IA du projet.`);
+      } else {
+        alert(`Error generating test cases: ${errorMessage}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -1051,205 +1093,232 @@ function Generate() {
     console.log("History version loaded successfully");
   };
 
+  // Updated handleChatSubmit function with project validation
   const handleChatSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!currentMessage.trim()) return;
+    if (!currentMessage.trim()) return;
 
-  console.log("Starting chat request with message:", currentMessage);
-  console.log("Current activeHistoryId:", activeHistoryId);
-  console.log("Direct chat mode:", directChatMode);
-  console.log("Generated tests length:", generatedTests?.length || 0);
-  
-  // Add user message to chat immediately
-  const userMessage = { role: "user", content: currentMessage };
-  setChatMessages(prev => [...prev, userMessage]);
-  setCurrentMessage("");
+    // Check if project has AI service configured
+    if (currentApiService === 'none') {
+      alert("Aucun service IA configuré pour ce projet. Contactez votre manager pour configurer Claude API ou s'assurer que le RAG local est disponible.");
+      return;
+    }
 
-  const tempId = Date.now().toString();
-  setChatMessages(prev => [...prev, { 
-    id: tempId, 
-    role: "assistant", 
-    content: "Thinking...", 
-    isPartial: true 
-  }]);
-
-  // Reset processing variables
-  processedLength = 0;
-  responseText = "";
-  updatedTestsFound = false;
-
-  try {
-    const requestData = {
-      message: userMessage.content,
-      project_id: projectId,
-      test_cases: generatedTests || "",
-      requirement_id: selectedRequirement?.id || null,
-      requirement_title: selectedRequirement?.title || newRequirementTitle,
-      requirements: requirementsDescription,
-      chat_history: chatMessages.filter(msg => !msg.isPartial),
-      direct_mode: directChatMode,
-      active_history_id: activeHistoryId,
-    };
-
-    console.log("Sending chat request with data:", {
-      message: requestData.message,
-      projectId: requestData.project_id,
-      directMode: requestData.direct_mode,
-      activeHistoryId: requestData.active_history_id,
-      testCasesLength: requestData.test_cases.length
-    });
-
-    setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-
-    const response = await api({
-      method: 'post',
-      url: '/chat_with_assistant',
-      data: requestData,
-      responseType: 'text', // Important for SSE
-      onDownloadProgress: (progressEvent) => {
-        const text = progressEvent.event.target.responseText;
-        processSSEResponse(text);
-      }
-    });
+    console.log("Starting chat request with message:", currentMessage);
+    console.log("Current activeHistoryId:", activeHistoryId);
+    console.log("Direct chat mode:", directChatMode);
+    console.log("Generated tests length:", generatedTests?.length || 0);
     
-  } catch (error) {
-    console.error("Chat error:", error);
-    
-    setChatMessages(prev => {
-      const filtered = prev.filter(msg => msg.id !== tempId);
+    // Add user message to chat immediately
+    const userMessage = { role: "user", content: currentMessage };
+    setChatMessages(prev => [...prev, userMessage]);
+    setCurrentMessage("");
+
+    const tempId = Date.now().toString();
+    setChatMessages(prev => [...prev, { 
+      id: tempId, 
+      role: "assistant", 
+      content: "Thinking...", 
+      isPartial: true 
+    }]);
+
+    // Reset processing variables
+    processedLength = 0;
+    responseText = "";
+    updatedTestsFound = false;
+
+    try {
+      const requestData = {
+        message: userMessage.content,
+        project_id: projectId, // *** ALWAYS INCLUDE PROJECT ID ***
+        test_cases: generatedTests || "",
+        requirement_id: selectedRequirement?.id || null,
+        requirement_title: selectedRequirement?.title || newRequirementTitle,
+        requirements: requirementsDescription,
+        chat_history: chatMessages.filter(msg => !msg.isPartial),
+        direct_mode: directChatMode,
+        active_history_id: activeHistoryId,
+      };
+
+      console.log("Sending chat request with data:", {
+        message: requestData.message,
+        projectId: requestData.project_id,
+        directMode: requestData.direct_mode,
+        activeHistoryId: requestData.active_history_id,
+        testCasesLength: requestData.test_cases.length,
+        currentService: currentApiService
+      });
+
+      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
+
+      const response = await api({
+        method: 'post',
+        url: '/chat_with_assistant',
+        data: requestData,
+        responseType: 'text',
+        onDownloadProgress: (progressEvent) => {
+          const text = progressEvent.event.target.responseText;
+          processSSEResponse(text);
+        }
+      });
       
-      return [...filtered, {
-        role: "assistant",
-        content: `Erreur de communication avec le serveur. ${error.message || ""}`
-      }];
-    });
-  }
-};
-  const processSSEResponse = (text) => {
-  // Only process the new part of the text
-  const newText = text.substring(processedLength);
-  processedLength = text.length;
-  
-  if (!newText) return;
-  
-  // Split by double newlines which typically separate SSE messages
-  const messages = newText.split('\n\n');
-  
-  for (const message of messages) {
-    if (!message.trim()) continue;
-    
-    // Process each line that starts with "data: "
-    const lines = message.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.replace('data: ', '');
+    } catch (error) {
+      console.error("Chat error:", error);
+      
+      setChatMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== tempId);
         
-        if (data === "[DONE]") {
-          console.log("Received DONE marker");
-          
-          // Handle any remaining response text if no test updates were found
-          if (responseText && !updatedTestsFound) {
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
-              role: "assistant",
-              content: responseText
-            }]);
+        let errorMessage = "Erreur de communication avec le service IA.";
+        
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.message) {
+          if (error.message.includes('No AI service configured')) {
+            errorMessage = "Aucun service IA configuré. Contactez votre manager.";
+          } else {
+            errorMessage = `Erreur: ${error.message}`;
           }
-          
-          // Reset processing variables for next chat
-          processedLength = 0;
-          responseText = "";
-          updatedTestsFound = false;
-          continue;
         }
         
-        try {
-          const parsed = JSON.parse(data);
+        return [...filtered, {
+          role: "assistant",
+          content: errorMessage
+        }];
+      });
+    }
+  };
+
+  // Enhanced error handling for SSE responses
+  const processSSEResponse = (text) => {
+    // Only process the new part of the text
+    const newText = text.substring(processedLength);
+    processedLength = text.length;
+    
+    if (!newText) return;
+    
+    // Split by double newlines which typically separate SSE messages
+    const messages = newText.split('\n\n');
+    
+    for (const message of messages) {
+      if (!message.trim()) continue;
+      
+      // Process each line that starts with "data: "
+      const lines = message.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.replace('data: ', '');
           
-          // Handle updated test cases - IMPROVED HANDLING
-          if (parsed.updated_test_cases) {
-            updatedTestsFound = true;
-            const updatedTests = parsed.updated_test_cases;
+          if (data === "[DONE]") {
+            console.log("Received DONE marker");
             
-            console.log("Received updated test cases from chat");
-            console.log("Updated test cases length:", updatedTests.length);
-            console.log("First 100 chars:", updatedTests.substring(0, 100));
-            
-            // Update the test cases in the UI immediately
-            setGeneratedTests(updatedTests);
-            setEditedTests(updatedTests);
-            
-            // Exit editing mode if we're in it
-            if (isEditing) {
-              setIsEditing(false);
-              console.log("Exited editing mode due to AI update");
+            // Handle any remaining response text if no test updates were found
+            if (responseText && !updatedTestsFound) {
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+                role: "assistant",
+                content: responseText
+              }]);
             }
             
-            // Show confirmation message
-            const confirmationMessage = parsed.confirmation || "✅ Modifications appliquées avec succès.";
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-              role: "assistant", 
-              content: confirmationMessage
-            }]);
-            
-            // Refresh history after AI modification
-            setTimeout(() => {
-              console.log("Refreshing history after AI modification");
-              fetchHistory();
-            }, 500);
+            // Reset processing variables for next chat
+            processedLength = 0;
+            responseText = "";
+            updatedTestsFound = false;
+            continue;
           }
-          else if (parsed.chunk) {
-            responseText += parsed.chunk;
+          
+          try {
+            const parsed = JSON.parse(data);
             
-            // Update the streaming message
-            setChatMessages(prev => {
-              const assistantMsg = prev.find(msg => 
-                msg.role === "assistant" && msg.isPartial
-              );
+            // Handle errors from AI services
+            if (parsed.error) {
+              let errorMsg = parsed.error;
               
-              if (assistantMsg) {
-                return prev.map(msg => 
-                  (msg.role === "assistant" && msg.isPartial) 
-                    ? { ...msg, content: responseText } 
-                    : msg
-                );
-              } else {
-                return [...prev, { 
-                  role: "assistant", 
-                  content: responseText, 
-                  isPartial: true 
-                }];
+              // Provide helpful error messages for common issues
+              if (errorMsg.includes('No AI service configured') || 
+                  errorMsg.includes('Claude API not configured') ||
+                  errorMsg.includes('Local RAG system not available')) {
+                errorMsg += "\n\nContactez votre manager pour configurer le service IA du projet.";
               }
-            });
-          }
-          else if (parsed.error) {
-            console.error("Server error:", parsed.error);
-            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
-              role: "assistant", 
-              content: `Erreur: ${parsed.error}` 
-            }]);
-          }
-          else if (parsed.complete) {
-            console.log("Chat response complete");
-            // Remove any partial messages and finalize
-            setChatMessages(prev => {
-              const filtered = prev.filter(msg => !msg.isPartial);
-              if (responseText && !updatedTestsFound) {
+              
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+                role: "assistant",
+                content: `Erreur: ${errorMsg}`
+              }]);
+              continue;
+            }
+            
+            // Handle service information
+            if (parsed.service_used) {
+              console.log(`Response generated using: ${parsed.service_used}`);
+            }
+            
+            // Handle updated test cases
+            if (parsed.updated_test_cases) {
+              updatedTestsFound = true;
+              const updatedTests = parsed.updated_test_cases;
+              
+              console.log("Received updated test cases from chat");
+              console.log("Updated test cases length:", updatedTests.length);
+              
+              // Update the test cases in the UI immediately
+              setGeneratedTests(updatedTests);
+              setEditedTests(updatedTests);
+              
+              // Exit editing mode if we're in it
+              if (isEditing) {
+                setIsEditing(false);
+                console.log("Exited editing mode due to AI update");
+              }
+              
+              // Show confirmation message
+              const confirmationMessage = parsed.confirmation || "✅ Modifications appliquées avec succès.";
+              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
+                role: "assistant", 
+                content: confirmationMessage
+              }]);
+              
+              // Refresh history after AI modification
+              setTimeout(() => {
+                console.log("Refreshing history after AI modification");
+                fetchHistory();
+              }, 500);
+              continue;
+            }
+            
+            // Handle regular message chunks
+            if (parsed.message) {
+              responseText += parsed.message;
+              
+              // Update the streaming message
+              setChatMessages(prev => {
+                const filtered = prev.filter(msg => !msg.isPartial);
                 return [...filtered, {
                   role: "assistant",
-                  content: responseText
+                  content: responseText,
+                  isPartial: true
                 }];
-              }
-              return filtered;
+              });
+            }
+            
+          } catch (e) {
+            // Not JSON, treat as plain text
+            responseText += data;
+            
+            // Update the partial message
+            setChatMessages(prev => {
+              const filtered = prev.filter(msg => !msg.isPartial);
+              return [...filtered, {
+                role: "assistant", 
+                content: responseText,
+                isPartial: true
+              }];
             });
           }
-        } catch (error) {
-          console.warn("Error parsing SSE message:", error, "Raw data:", data);
         }
       }
     }
-  }
-};
+  };
 
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
@@ -1809,12 +1878,12 @@ function Generate() {
           <div style={styles.chatHeader}>
             <h3 style={styles.chatTitle}>Assistant IA</h3>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              {/* AI Service Indicator */}
-              {currentApiService !== 'unknown' && (
+              {/* AI Service Indicator - Project Level */}
+              {currentApiService !== 'none' && (
                 <div style={{
                   fontSize: '0.75rem',
-                  color: currentApiService === 'gemini' ? '#10B981' : '#4F46E5',
-                  backgroundColor: currentApiService === 'gemini' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(79, 70, 229, 0.1)',
+                  color: getServiceColor(currentApiService),
+                  backgroundColor: getServiceBackgroundColor(currentApiService),
                   padding: '0.25rem 0.5rem',
                   borderRadius: '0.375rem',
                   display: 'flex',
@@ -1825,9 +1894,9 @@ function Generate() {
                     width: '0.5rem',
                     height: '0.5rem',
                     borderRadius: '50%',
-                    backgroundColor: currentApiService === 'gemini' ? '#10B981' : '#4F46E5'
+                    backgroundColor: getServiceColor(currentApiService)
                   }} />
-                  {currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}
+                  {getServiceDisplayName(currentApiService)}
                 </div>
               )}
               
@@ -1901,8 +1970,8 @@ function Generate() {
                 </svg>
                 <p style={styles.emptyChatText}>
                   {directChatMode
-                    ? `Demandez des modifications directes à vos cas de test${currentApiService !== 'unknown' ? ` en utilisant ${currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}` : ''}.`
-                    : `Posez des questions sur vos cas de test générés pour obtenir de l'aide ou des suggestions d'amélioration${currentApiService !== 'unknown' ? ` via ${currentApiService === 'gemini' ? 'Gemini AI' : 'Claude AI'}` : ''}.`}
+                    ? `Demandez des modifications directes à vos cas de test${currentApiService !== 'none' ? ` en utilisant ${getServiceDisplayName(currentApiService)}` : '. Aucun service IA configuré - contactez votre manager'}.`
+                    : `Posez des questions sur vos cas de test générés${currentApiService !== 'none' ? ` via ${getServiceDisplayName(currentApiService)}` : '. Aucun service IA configuré - contactez votre manager'}.`}
                 </p>
               </div>
             ) : (
