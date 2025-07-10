@@ -2,23 +2,8 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import styled, { css } from "styled-components"
 import api from "../api"
-import {
-  AlertTriangle,
-  Users,
-  ArrowLeft,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  BarChart3,
-  FolderOpen,
-  UserCheck,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-} from "lucide-react"
+import { AlertTriangle, Users, ArrowLeft, Plus, Edit, Trash2, Eye, BarChart3, FolderOpen, UserCheck, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 
-// Styled Components with clean design
 const Container = styled.div`
   min-height: 100vh;
   background-color: #f8fafc;
@@ -638,37 +623,61 @@ export default function AdminPage() {
   }, [activeTab])
 
   const fetchData = async () => {
-    setIsLoading(true)
-    setError(null)
+  setIsLoading(true)
+  setError(null)
 
-    try {
-      if (activeTab === "dashboard") {
-        console.log("Fetching admin dashboard data...")
-        const response = await api.get("/admin/dashboard")
-        console.log("Dashboard response:", response.data)
-        setDashboardData(response.data)
-      } else if (activeTab === "users") {
-        console.log("Fetching admin users data...")
-        const response = await api.get("/admin/users")
-        console.log("Users response:", response.data)
-        setUsers(response.data.users || [])
-      } else if (activeTab === "projects") {
-        console.log("Fetching admin projects data...")
-        const response = await api.get("/admin/projects")
-        console.log("Projects response:", response.data)
-        setProjects(response.data.projects || [])
+  try {
+    if (activeTab === "dashboard") {
+      console.log("Fetching admin dashboard data...")
+      const response = await api.get("/admin/dashboard")
+      console.log("Dashboard response:", response.data)
+      setDashboardData(response.data)
+    } else if (activeTab === "users") {
+      console.log("Fetching admin users data...")
+      const response = await api.get("/admin/users")
+      console.log("Users response:", response.data)
+      setUsers(response.data.users || [])
+    } else if (activeTab === "projects") {
+      console.log("Fetching admin projects data...")
+      
+      // Add a small delay to prevent rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      const response = await api.get("/admin/projects")
+      console.log("Projects response:", response.data)
+      
+      if (response.data && response.data.projects) {
+        setProjects(response.data.projects)
+      } else {
+        console.warn("No projects data in response")
+        setProjects([])
       }
-    } catch (error) {
-      console.error("Error fetching data:", error)
-      setError(error.response?.data?.error || `Failed to fetch ${activeTab} data`)
-
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        navigate("/login")
-      }
-    } finally {
-      setIsLoading(false)
     }
+  } catch (error) {
+    console.error("Error fetching data:", error)
+    
+    // Handle different types of errors
+    if (error.response?.status === 429) {
+      setError("Too many requests. Please wait a moment and try again.")
+    } else if (error.response?.status === 401) {
+      setError("Session expired. Please log in again.")
+      navigate("/login")
+    } else if (error.response?.status === 403) {
+      setError("Admin access required. Please check your permissions.")
+    } else if (error.response?.status === 404) {
+      setError("Admin endpoint not found. Please check server configuration.")
+    } else if (error.response?.status === 500) {
+      const serverError = error.response?.data?.error || "Internal server error"
+      setError(`Server error: ${serverError}`)
+    } else if (error.code === 'ERR_NETWORK') {
+      setError("Network error. Please check if the server is running.")
+    } else {
+      setError(error.response?.data?.error || error.message || `Failed to load ${activeTab} data`)
+    }
+  } finally {
+    setIsLoading(false)
   }
+}
 
   const handleCreateUser = async () => {
     try {
@@ -687,7 +696,7 @@ export default function AdminPage() {
       })
     } catch (error) {
       console.error("Error creating user:", error)
-      setError(error.response?.data?.error || "Failed to create user")
+      setError(error.response?.data?.error || "Échec de la création de l'utilisateur")
     }
   }
 
@@ -714,12 +723,12 @@ export default function AdminPage() {
       setEditUser(null)
     } catch (error) {
       console.error("Error updating user:", error)
-      setError(error.response?.data?.error || "Failed to update user")
+      setError(error.response?.data?.error || "Échec de la mise à jour de l'utilisateur")
     }
   }
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
       try {
         await api.delete(`/admin/users/${userId}`)
         setUsers(users.filter((user) => user._id !== userId))
@@ -728,35 +737,88 @@ export default function AdminPage() {
         }
       } catch (error) {
         console.error("Error deleting user:", error)
-        setError(error.response?.data?.error || "Failed to delete user")
+        setError(error.response?.data?.error || "Échec de la suppression de l'utilisateur")
       }
     }
   }
 
   const handleDeleteProject = async (projectId) => {
-    if (window.confirm("Are you sure you want to delete this project?")) {
-      try {
-        await api.delete(`/admin/projects/${projectId}`)
-        setProjects(projects.filter((project) => project.id !== projectId))
-        if (selectedProject && selectedProject.id === projectId) {
-          setSelectedProject(null)
-        }
-      } catch (error) {
-        console.error("Error deleting project:", error)
+  if (window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Add a small delay to prevent rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      await api.delete(`/admin/projects/${projectId}`)
+      
+      // Update the projects list
+      setProjects(projects.filter((project) => project.id !== projectId))
+      
+      // Clear selected project if it was deleted
+      if (selectedProject && selectedProject.id === projectId) {
+        setSelectedProject(null)
+      }
+      
+      // Show success message
+      console.log("Project deleted successfully")
+      
+    } catch (error) {
+      console.error("Error deleting project:", error)
+      
+      if (error.response?.status === 429) {
+        setError("Rate limit exceeded. Please wait before deleting projects.")
+      } else if (error.response?.status === 404) {
+        setError("Project not found or already deleted.")
+      } else if (error.response?.status === 500) {
+        setError("Server error while deleting project.")
+      } else {
         setError(error.response?.data?.error || "Failed to delete project")
       }
+    } finally {
+      setIsLoading(false)
     }
   }
+}
 
   const handleViewProjectDetails = async (projectId) => {
-    try {
-      const response = await api.get(`/admin/projects/${projectId}`)
-      setSelectedProject(response.data.project)
-    } catch (error) {
-      console.error("Error fetching project details:", error)
-      setError(error.response?.data?.error || "Failed to fetch project details")
+  try {
+    console.log("handleViewProjectDetails called with projectId:", projectId)
+    
+    // Add loading state for this specific action
+    setIsLoading(true)
+    setError(null)
+    
+    // Add a small delay to prevent rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    console.log("Making request to: /admin/projects/" + projectId)
+    
+    const response = await api.get(`/admin/projects/${projectId}`)
+    console.log("Project details response:", response.data)
+    
+    setSelectedProject(response.data.project)
+  } catch (error) {
+    console.error("Error fetching project details:", error)
+    console.error("Error response:", error.response)
+    console.error("Error status:", error.response?.status)
+    console.error("Error data:", error.response?.data)
+    
+    // Handle specific error types
+    if (error.response?.status === 429) {
+      setError("Rate limit exceeded. Please wait before viewing project details.")
+    } else if (error.response?.status === 404) {
+      setError("Project not found.")
+    } else if (error.response?.status === 500) {
+      setError("Server error while loading project details.")
+    } else {
+      setError(error.response?.data?.error || "Failed to load project details")
     }
+  } finally {
+    setIsLoading(false)
   }
+}
 
   const handleViewUserDetails = async (userId) => {
     try {
@@ -764,7 +826,7 @@ export default function AdminPage() {
       setSelectedUser(response.data.user)
     } catch (error) {
       console.error("Error fetching user details:", error)
-      setError(error.response?.data?.error || "Failed to fetch user details")
+      setError(error.response?.data?.error || "Échec du chargement des détails de l'utilisateur")
     }
   }
 
@@ -791,31 +853,31 @@ export default function AdminPage() {
   // Utility functions
   const getReadableCategory = (category) => {
     const categoryMap = {
-      functionality: "Functionality",
-      ui: "UI/UX", 
-      security: "Security",
+      functionality: "Fonctionnalité",
+      ui: "Interface utilisateur", 
+      security: "Sécurité",
       performance: "Performance",
-      usability: "Usability",
-      compatibility: "Compatibility",
-      accessibility: "Accessibility",
+      usability: "Utilisabilité",
+      compatibility: "Compatibilité",
+      accessibility: "Accessibilité",
     }
     return categoryMap[category] || category
   }
 
   const getReadablePriority = (priority) => {
     const priorityMap = {
-      high: "High",
-      medium: "Medium", 
-      low: "Low",
+      high: "Haute",
+      medium: "Moyenne", 
+      low: "Basse",
     }
     return priorityMap[priority] || priority
   }
 
   const getReadableStatus = (status) => {
     const statusMap = {
-      approved: "Approved",
-      "in-review": "In Review",
-      draft: "Draft",
+      approved: "Approuvé",
+      "in-review": "En révision",
+      draft: "Brouillon",
     }
     return statusMap[status] || status
   }
@@ -874,28 +936,28 @@ export default function AdminPage() {
 
     const statsData = [
       { 
-        title: "Total Users", 
+        title: "Total Utilisateurs", 
         value: usersStats.total || 0, 
         icon: Users, 
         color: "#3b82f6",
         bgColor: "rgba(59, 130, 246, 0.1)"
       },
       { 
-        title: "Admin Users", 
+        title: "Utilisateurs Admin", 
         value: usersStats.by_role.admin || 0, 
         icon: UserCheck, 
         color: "#8b5cf6",
         bgColor: "rgba(139, 92, 246, 0.1)"
       },
       { 
-        title: "Regular Users", 
+        title: "Utilisateurs Réguliers", 
         value: usersStats.by_role.user || 0, 
         icon: Users, 
         color: "#10b981",
         bgColor: "rgba(16, 185, 129, 0.1)"
       },
       { 
-        title: "Total Projects", 
+        title: "Total Projets", 
         value: projectsStats.total || 0, 
         icon: FolderOpen, 
         color: "#f59e0b",
@@ -905,8 +967,8 @@ export default function AdminPage() {
 
     return (
       <AnimatedDiv>
-        <PageTitle>Admin Dashboard</PageTitle>
-        <PageSubtitle>System overview and management tools</PageSubtitle>
+        <PageTitle>Tableau de Bord Admin</PageTitle>
+        <PageSubtitle>Vue d'ensemble du système et outils de gestion</PageSubtitle>
 
         <StatsGrid>
           {statsData.map((stat, index) => (
@@ -932,7 +994,7 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>
                   <Users size={20} />
-                  Recent Users
+                  Utilisateurs Récents
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -940,8 +1002,8 @@ export default function AdminPage() {
                   <Table>
                     <TableHeader>
                       <tr>
-                        <TableHeaderCell>Username</TableHeaderCell>
-                        <TableHeaderCell>Role</TableHeaderCell>
+                        <TableHeaderCell>Nom d'utilisateur</TableHeaderCell>
+                        <TableHeaderCell>Rôle</TableHeaderCell>
                       </tr>
                     </TableHeader>
                     <tbody>
@@ -950,7 +1012,7 @@ export default function AdminPage() {
                           <TableCell style={{ fontWeight: 500 }}>{user.username}</TableCell>
                           <TableCell>
                             <Badge variant={user.role === "admin" ? "admin" : "user"}>
-                              {user.role || "user"}
+                              {user.role === "admin" ? "Admin" : user.role === "manager" ? "Manager" : "Utilisateur"}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -960,7 +1022,7 @@ export default function AdminPage() {
                 ) : (
                   <EmptyState>
                     <Users size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                    <p>No recent users</p>
+                    <p>Aucun utilisateur récent</p>
                   </EmptyState>
                 )}
               </CardContent>
@@ -972,7 +1034,7 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>
                   <FolderOpen size={20} />
-                  Recent Projects
+                  Projets Récents
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -980,9 +1042,9 @@ export default function AdminPage() {
                   <Table>
                     <TableHeader>
                       <tr>
-                        <TableHeaderCell>Name</TableHeaderCell>
-                        <TableHeaderCell>Owner</TableHeaderCell>
-                        <TableHeaderCell>Created</TableHeaderCell>
+                        <TableHeaderCell>Nom</TableHeaderCell>
+                        <TableHeaderCell>Propriétaire</TableHeaderCell>
+                        <TableHeaderCell>Créé</TableHeaderCell>
                       </tr>
                     </TableHeader>
                     <tbody>
@@ -998,7 +1060,7 @@ export default function AdminPage() {
                 ) : (
                   <EmptyState>
                     <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                    <p>No recent projects</p>
+                    <p>Aucun projet récent</p>
                   </EmptyState>
                 )}
               </CardContent>
@@ -1008,14 +1070,14 @@ export default function AdminPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Top Project Contributors</CardTitle>
+            <CardTitle>Principaux Contributeurs de Projets</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <tr>
-                  <TableHeaderCell>Username</TableHeaderCell>
-                  <TableHeaderCell>Number of Projects</TableHeaderCell>
+                  <TableHeaderCell>Nom d'utilisateur</TableHeaderCell>
+                  <TableHeaderCell>Nombre de Projets</TableHeaderCell>
                 </tr>
               </TableHeader>
               <tbody>
@@ -1029,7 +1091,7 @@ export default function AdminPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={2} style={{ textAlign: "center", color: "#6b7280" }}>
-                      No project contributors data available
+                      Aucune donnée de contributeurs de projets disponible
                     </TableCell>
                   </TableRow>
                 )}
@@ -1047,20 +1109,20 @@ export default function AdminPage() {
         <AnimatedDiv>
           <BackButton onClick={() => setSelectedUser(null)}>
             <ArrowLeft size={16} />
-            Back to users list
+            Retour à la liste des utilisateurs
           </BackButton>
 
-          <PageTitle>User Details: {selectedUser.username}</PageTitle>
+          <PageTitle>Détails de l'Utilisateur: {selectedUser.username}</PageTitle>
 
           <Card>
             <CardHeader>
-              <CardTitle>User Information</CardTitle>
+              <CardTitle>Informations de l'Utilisateur</CardTitle>
             </CardHeader>
             <CardContent>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
                 <div>
                   <ProjectInfoItem>
-                    <ProjectInfoLabel>Username</ProjectInfoLabel>
+                    <ProjectInfoLabel>Nom d'utilisateur</ProjectInfoLabel>
                     <ProjectInfoValue>{selectedUser.username}</ProjectInfoValue>
                   </ProjectInfoItem>
                   <ProjectInfoItem>
@@ -1068,27 +1130,27 @@ export default function AdminPage() {
                     <ProjectInfoValue>{selectedUser.email || selectedUser.username}</ProjectInfoValue>
                   </ProjectInfoItem>
                   <ProjectInfoItem>
-                    <ProjectInfoLabel>Role</ProjectInfoLabel>
+                    <ProjectInfoLabel>Rôle</ProjectInfoLabel>
                     <ProjectInfoValue>
                       <Badge variant={selectedUser.role === "admin" ? "admin" : "user"}>
-                        {selectedUser.role || "user"}
+                        {selectedUser.role === "admin" ? "Admin" : selectedUser.role === "manager" ? "Manager" : "Utilisateur"}
                       </Badge>
                     </ProjectInfoValue>
                   </ProjectInfoItem>
                 </div>
                 <div>
                   <ProjectInfoItem>
-                    <ProjectInfoLabel>Created</ProjectInfoLabel>
+                    <ProjectInfoLabel>Créé</ProjectInfoLabel>
                     <ProjectInfoValue>
                       {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : "N/A"}
                     </ProjectInfoValue>
                   </ProjectInfoItem>
                   <ProjectInfoItem>
-                    <ProjectInfoLabel>Created By</ProjectInfoLabel>
+                    <ProjectInfoLabel>Créé par</ProjectInfoLabel>
                     <ProjectInfoValue>{selectedUser.created_by || "N/A"}</ProjectInfoValue>
                   </ProjectInfoItem>
                   <ProjectInfoItem>
-                    <ProjectInfoLabel>Last Updated</ProjectInfoLabel>
+                    <ProjectInfoLabel>Dernière mise à jour</ProjectInfoLabel>
                     <ProjectInfoValue>
                       {selectedUser.updated_at ? new Date(selectedUser.updated_at).toLocaleString() : "N/A"}
                     </ProjectInfoValue>
@@ -1099,7 +1161,7 @@ export default function AdminPage() {
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem" }}>
                 <Button variant="primary" onClick={() => handleStartEditUser(selectedUser)}>
                   <Edit size={16} />
-                  Edit User
+                  Modifier l'Utilisateur
                 </Button>
                 <Button
                   variant="danger"
@@ -1109,7 +1171,7 @@ export default function AdminPage() {
                   }}
                 >
                   <Trash2 size={16} />
-                  Delete User
+                  Supprimer l'Utilisateur
                 </Button>
               </div>
             </CardContent>
@@ -1122,27 +1184,27 @@ export default function AdminPage() {
       <AnimatedDiv>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
           <div>
-            <PageTitle>User Management</PageTitle>
-            <PageSubtitle>Manage system users and their permissions</PageSubtitle>
+            <PageTitle>Gestion des Utilisateurs</PageTitle>
+            <PageSubtitle>Gérer les utilisateurs du système et leurs permissions</PageSubtitle>
           </div>
           <Button variant="primary" onClick={() => setShowUserForm(true)}>
             <Plus size={16} />
-            Add New User
+            Ajouter un Nouvel Utilisateur
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>All Users</CardTitle>
+            <CardTitle>Tous les Utilisateurs</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <tr>
-                  <TableHeaderCell>Username</TableHeaderCell>
+                  <TableHeaderCell>Nom d'utilisateur</TableHeaderCell>
                   <TableHeaderCell>Email</TableHeaderCell>
-                  <TableHeaderCell>Role</TableHeaderCell>
-                  <TableHeaderCell>Created</TableHeaderCell>
+                  <TableHeaderCell>Rôle</TableHeaderCell>
+                  <TableHeaderCell>Créé</TableHeaderCell>
                   <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
                 </tr>
               </TableHeader>
@@ -1152,7 +1214,7 @@ export default function AdminPage() {
                     <TableCell colSpan={5}>
                       <EmptyState>
                         <Users size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                        <p>No users found. Create your first user to get started.</p>
+                        <p>Aucun utilisateur trouvé. Créez votre premier utilisateur pour commencer.</p>
                       </EmptyState>
                     </TableCell>
                   </tr>
@@ -1163,7 +1225,7 @@ export default function AdminPage() {
                       <TableCell>{user.email || user.username}</TableCell>
                       <TableCell>
                         <Badge variant={user.role === "admin" ? "admin" : "user"}>
-                          {user.role || "user"}
+                          {user.role === "admin" ? "Admin" : user.role === "manager" ? "Manager" : "Utilisateur"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -1193,245 +1255,285 @@ export default function AdminPage() {
     )
   }
 
-  const renderProjects = () => {
-    if (selectedProject) {
-      return (
-        <AnimatedDiv>
-          <BackButton onClick={() => setSelectedProject(null)}>
-            <ArrowLeft size={16} />
-            Back to projects list
-          </BackButton>
+ const renderProjects = () => {
+  if (selectedProject) {
+    return (
+      <AnimatedDiv>
+        <BackButton onClick={() => setSelectedProject(null)}>
+          <ArrowLeft size={16} />
+          Retour à la liste des projets
+        </BackButton>
 
-          <PageTitle>Project: {selectedProject.name}</PageTitle>
-          <PageSubtitle>
-            Created by {selectedProject.user} on {new Date(selectedProject.created_at).toLocaleDateString()}
-          </PageSubtitle>
+        <PageTitle>Projet: {selectedProject.name}</PageTitle>
+        <PageSubtitle>
+          Créé par {selectedProject.user} le {new Date(selectedProject.created_at).toLocaleDateString()}
+        </PageSubtitle>
 
-          <ProjectDetailContainer>
-            <ProjectSidebar>
+        <ProjectDetailContainer>
+          <ProjectSidebar>
+            <ProjectInfoCard>
+              <CardHeader>
+                <CardTitle>Informations du Projet</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Propriétaire</ProjectInfoLabel>
+                  <ProjectInfoValue>{selectedProject.user}</ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Créé</ProjectInfoLabel>
+                  <ProjectInfoValue>
+                    {new Date(selectedProject.created_at).toLocaleDateString()}
+                  </ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Dernière mise à jour</ProjectInfoLabel>
+                  <ProjectInfoValue>
+                    {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
+                  </ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Exigences</ProjectInfoLabel>
+                  <ProjectInfoValue>{selectedProject.requirements?.length || 0}</ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Collaborateurs</ProjectInfoLabel>
+                  <ProjectInfoValue>{selectedProject.collaborator_details?.length || 0}</ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Langue</ProjectInfoLabel>
+                  <ProjectInfoValue>{selectedProject.language === "fr" ? "Français" : selectedProject.language === "en" ? "Anglais" : "Non spécifiée"}</ProjectInfoValue>
+                </ProjectInfoItem>
+                <ProjectInfoItem>
+                  <ProjectInfoLabel>Modèle IA</ProjectInfoLabel>
+                  <ProjectInfoValue>{selectedProject.ai_model || "Par défaut"}</ProjectInfoValue>
+                </ProjectInfoItem>
+
+                <div style={{ marginTop: "1.25rem" }}>
+                  <Button
+                    variant="danger"
+                    style={{ width: "100%" }}
+                    onClick={() => {
+                      handleDeleteProject(selectedProject.id)
+                      setSelectedProject(null)
+                    }}
+                    disabled={isLoading}
+                  >
+                    <Trash2 size={16} />
+                    {isLoading ? "Suppression..." : "Supprimer le Projet"}
+                  </Button>
+                </div>
+              </CardContent>
+            </ProjectInfoCard>
+
+            {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
               <ProjectInfoCard>
                 <CardHeader>
-                  <CardTitle>Project Information</CardTitle>
+                  <CardTitle>Collaborateurs ({selectedProject.collaborator_details.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Owner</ProjectInfoLabel>
-                    <ProjectInfoValue>{selectedProject.user}</ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Created</ProjectInfoLabel>
-                    <ProjectInfoValue>
-                      {new Date(selectedProject.created_at).toLocaleDateString()}
-                    </ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Last Updated</ProjectInfoLabel>
-                    <ProjectInfoValue>
-                      {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
-                    </ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Requirements</ProjectInfoLabel>
-                    <ProjectInfoValue>{selectedProject.requirements?.length || 0}</ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Collaborators</ProjectInfoLabel>
-                    <ProjectInfoValue>{selectedProject.collaborators?.length || 0}</ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>Language</ProjectInfoLabel>
-                    <ProjectInfoValue>{selectedProject.language || "Not specified"}</ProjectInfoValue>
-                  </ProjectInfoItem>
-                  <ProjectInfoItem>
-                    <ProjectInfoLabel>AI Model</ProjectInfoLabel>
-                    <ProjectInfoValue>{selectedProject.ai_model || "Default"}</ProjectInfoValue>
-                  </ProjectInfoItem>
-
-                  <div style={{ marginTop: "1.25rem" }}>
-                    <Button
-                      variant="danger"
-                      style={{ width: "100%" }}
-                      onClick={() => {
-                        handleDeleteProject(selectedProject.id)
-                        setSelectedProject(null)
-                      }}
-                    >
-                      <Trash2 size={16} />
-                      Delete Project
-                    </Button>
-                  </div>
-                </CardContent>
-              </ProjectInfoCard>
-
-              {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
-                <ProjectInfoCard>
-                  <CardHeader>
-                    <CardTitle>Collaborators ({selectedProject.collaborator_details.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedProject.collaborator_details.map((collab) => (
-                      <div key={collab._id} style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        padding: "0.75rem 0", 
-                        borderBottom: "1px solid #f3f4f6" 
+                  {selectedProject.collaborator_details.map((collab) => (
+                    <div key={collab._id} style={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      padding: "0.75rem 0", 
+                      borderBottom: "1px solid #f3f4f6" 
+                    }}>
+                      <div style={{
+                        width: "2rem",
+                        height: "2rem", 
+                        borderRadius: "50%",
+                        backgroundColor: "#e5e7eb",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: "0.75rem",
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        color: "#4b5563"
                       }}>
-                        <div style={{
-                          width: "2rem",
-                          height: "2rem", 
-                          borderRadius: "50%",
-                          backgroundColor: "#e5e7eb",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          marginRight: "0.75rem",
-                          fontSize: "0.875rem",
-                          fontWeight: "600",
-                          color: "#4b5563"
-                        }}>
-                          {collab.username.charAt(0).toUpperCase()}
+                        {collab.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#1f2937" }}>
+                          {collab.username}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#1f2937" }}>
-                            {collab.username}
-                          </div>
-                          <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                            {collab.email}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                          {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
+                        <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                          {collab.email}
                         </div>
                       </div>
-                    ))}
-                  </CardContent>
-                </ProjectInfoCard>
-              )}
-            </ProjectSidebar>
+                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                        {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </ProjectInfoCard>
+            )}
+          </ProjectSidebar>
 
-            <ProjectContent>
+          <ProjectContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Contexte du Projet</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div style={{
+                  whiteSpace: "pre-wrap",
+                  padding: "1rem",
+                  backgroundColor: "#f9fafb",
+                  borderRadius: "0.5rem",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "0.875rem",
+                  lineHeight: "1.5",
+                  color: "#4b5563",
+                }}>
+                  {selectedProject.context || "Aucun contexte fourni pour ce projet."}
+                </div>
+              </CardContent>
+            </Card>
+
+            {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Project Context</CardTitle>
+                  <CardTitle>Exigences ({selectedProject.requirements.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div style={{
-                    whiteSpace: "pre-wrap",
-                    padding: "1rem",
-                    backgroundColor: "#f9fafb",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #e5e7eb",
-                    fontSize: "0.875rem",
-                    lineHeight: "1.5",
-                    color: "#4b5563",
-                  }}>
-                    {selectedProject.context || "No context provided for this project."}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Requirements ({selectedProject.requirements.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedProject.requirements.map((req) => (
-                      <RequirementCard key={req.id}>
-                        <RequirementHeader
-                          onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
-                        >
-                          <RequirementTitle>{req.title}</RequirementTitle>
-                          <RequirementBadges>
-                            <Badge 
-                              style={{
-                                backgroundColor: getCategoryColor(req.category),
-                                color: getCategoryTextColor(req.category),
-                                border: "none"
-                              }}
-                            >
-                              {getReadableCategory(req.category)}
+                  {selectedProject.requirements.map((req) => (
+                    <RequirementCard key={req.id}>
+                      <RequirementHeader
+                        onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
+                      >
+                        <RequirementTitle>{req.title}</RequirementTitle>
+                        <RequirementBadges>
+                          <Badge 
+                            style={{
+                              backgroundColor: getCategoryColor(req.category),
+                              color: getCategoryTextColor(req.category),
+                              border: "none"
+                            }}
+                          >
+                            {getReadableCategory(req.category)}
+                          </Badge>
+                          <Badge 
+                            style={{
+                              backgroundColor: getPriorityColor(req.priority),
+                              color: getPriorityTextColor(req.priority),
+                              border: "none"
+                            }}
+                          >
+                            {getReadablePriority(req.priority)}
+                          </Badge>
+                          <Button variant="outline" size="sm">
+                            {expandedRequirement === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </Button>
+                        </RequirementBadges>
+                      </RequirementHeader>
+                      {expandedRequirement === req.id && (
+                        <RequirementContent>
+                          <p>{req.description}</p>
+                          <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
+                            <Badge style={{
+                              backgroundColor: "rgba(107, 114, 128, 0.1)",
+                              color: "#6b7280",
+                              border: "none"
+                            }}>
+                              Statut: {getReadableStatus(req.status)}
                             </Badge>
-                            <Badge 
-                              style={{
-                                backgroundColor: getPriorityColor(req.priority),
-                                color: getPriorityTextColor(req.priority),
-                                border: "none"
-                              }}
-                            >
-                              {getReadablePriority(req.priority)}
-                            </Badge>
-                            <Button variant="outline" size="sm">
-                              {expandedRequirement === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </Button>
-                          </RequirementBadges>
-                        </RequirementHeader>
-                        {expandedRequirement === req.id && (
-                          <RequirementContent>
-                            <p>{req.description}</p>
-                            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
+                            {req.priority_auto_generated && (
                               <Badge style={{
                                 backgroundColor: "rgba(107, 114, 128, 0.1)",
                                 color: "#6b7280",
                                 border: "none"
                               }}>
-                                Status: {getReadableStatus(req.status)}
+                                Priorité auto-générée
                               </Badge>
-                              {req.priority_auto_generated && (
-                                <Badge style={{
-                                  backgroundColor: "rgba(107, 114, 128, 0.1)",
-                                  color: "#6b7280",
-                                  border: "none"
-                                }}>
-                                  Auto-generated priority
-                                </Badge>
-                              )}
-                            </div>
-                          </RequirementContent>
-                        )}
-                      </RequirementCard>
-                    ))}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent>
-                    <EmptyState>
-                      <FileText size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                      <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
-                        No Requirements Found
-                      </h3>
-                      <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
-                        This project doesn't have any requirements yet. Requirements are used to define the functionality and features of the project.
-                      </p>
-                    </EmptyState>
-                  </CardContent>
-                </Card>
-              )}
-            </ProjectContent>
-          </ProjectDetailContainer>
-        </AnimatedDiv>
-      )
-    }
+                            )}
+                          </div>
+                        </RequirementContent>
+                      )}
+                    </RequirementCard>
+                  ))}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent>
+                  <EmptyState>
+                    <FileText size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                    <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                      Aucune Exigence Trouvée
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                      Ce projet n'a pas encore d'exigences. Les exigences sont utilisées pour définir les fonctionnalités et caractéristiques du projet.
+                    </p>
+                  </EmptyState>
+                </CardContent>
+              </Card>
+            )}
+          </ProjectContent>
+        </ProjectDetailContainer>
+      </AnimatedDiv>
+    )
+  }
 
     return (
-      <AnimatedDiv>
-        <PageTitle>Project Management</PageTitle>
-        <PageSubtitle>Manage and monitor all system projects</PageSubtitle>
+    <AnimatedDiv>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <div>
+          <PageTitle>Gestion des Projets</PageTitle>
+          <PageSubtitle>Gérer et surveiller tous les projets du système</PageSubtitle>
+        </div>
+        
+        {/* Add refresh button */}
+        <Button 
+          variant="outline" 
+          onClick={() => fetchData()}
+          disabled={isLoading}
+          style={{ minWidth: "120px" }}
+        >
+          {isLoading ? (
+            <>
+              <LoadingSpinner style={{ 
+                height: "1rem", 
+                width: "1rem", 
+                borderWidth: "2px",
+                marginRight: "0.5rem" 
+              }} />
+              Chargement...
+            </>
+          ) : (
+            "Actualiser"
+          )}
+        </Button>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>All Projects</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <CardTitle>Tous les Projets</CardTitle>
+            {projects.length > 0 && (
+              <Badge variant="outline" style={{ fontSize: "0.875rem" }}>
+                {projects.length} projet{projects.length > 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <LoadingContainer>
+              <LoadingSpinner />
+              <p style={{ color: "#6b7280", fontWeight: 500 }}>Chargement des projets...</p>
+            </LoadingContainer>
+          ) : (
             <Table>
               <TableHeader>
                 <tr>
-                  <TableHeaderCell>Name</TableHeaderCell>
-                  <TableHeaderCell>Owner</TableHeaderCell>
-                  <TableHeaderCell>Created</TableHeaderCell>
-                  <TableHeaderCell>Requirements</TableHeaderCell>
-                  <TableHeaderCell>Collaborators</TableHeaderCell>
+                  <TableHeaderCell>Nom</TableHeaderCell>
+                  <TableHeaderCell>Propriétaire</TableHeaderCell>
+                  <TableHeaderCell>Créé</TableHeaderCell>
+                  <TableHeaderCell>Exigences</TableHeaderCell>
+                  <TableHeaderCell>Collaborateurs</TableHeaderCell>
                   <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
                 </tr>
               </TableHeader>
@@ -1441,60 +1543,132 @@ export default function AdminPage() {
                     <TableCell colSpan={6}>
                       <EmptyState>
                         <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                        <p>No projects found.</p>
+                        <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                          Aucun Projet Trouvé
+                        </h3>
+                        <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                          Il n'y a actuellement aucun projet dans le système. Les projets apparaîtront ici une fois créés.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => fetchData()}
+                          disabled={isLoading}
+                        >
+                          Actualiser la liste
+                        </Button>
                       </EmptyState>
                     </TableCell>
                   </tr>
                 ) : (
-                  projects.map((project) => (
-                    <TableRow key={project._id}>
-                      <TableCell style={{ fontWeight: 500 }}>{project.name}</TableCell>
-                      <TableCell>{project.user}</TableCell>
-                      <TableCell>{new Date(project.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge>{project.requirements?.length || 0}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge>{project.collaborators?.length || 0}</Badge>
-                      </TableCell>
-                      <TableCell style={{ textAlign: "right" }}>
-                        <ButtonGroup>
-                          <Button variant="primary" size="sm" onClick={() => handleViewProjectDetails(project.id)}>
-                            <Eye size={14} />
-                          </Button>
-                          <Button variant="danger" size="sm" onClick={() => handleDeleteProject(project.id)}>
-                            <Trash2 size={14} />
-                          </Button>
-                        </ButtonGroup>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  projects.map((project) => {
+                    console.log("Rendering project:", project) // DEBUG LOG
+                    return (
+                      <TableRow key={project._id || project.id}>
+                        <TableCell style={{ fontWeight: 500 }}>
+                          {project.name}
+                          {project.language && (
+                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                              {project.language === "fr" ? "🇫🇷 Français" : project.language === "en" ? "🇬🇧 Anglais" : project.language}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{project.user}</TableCell>
+                        <TableCell>
+                          <div style={{ fontSize: "0.875rem" }}>
+                            {new Date(project.created_at).toLocaleDateString()}
+                          </div>
+                          {project.updated_at && (
+                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                              Modifié: {new Date(project.updated_at).toLocaleDateString()}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={project.requirements?.length > 0 || project.requirements_count > 0 ? "admin" : "outline"}>
+                            {project.requirements?.length || project.requirements_count || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={project.collaborator_details?.length > 0 || project.collaborator_count > 0 ? "user" : "outline"}>
+                            {project.collaborator_details?.length || project.collaborator_count || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell style={{ textAlign: "right" }}>
+                          <ButtonGroup>
+                            <Button 
+                              variant="primary" 
+                              size="sm" 
+                              onClick={() => {
+                                console.log("Eye button clicked for project:", project) // DEBUG LOG
+                                handleViewProjectDetails(project.id)
+                              }}
+                              disabled={isLoading}
+                              title="Voir les détails du projet"
+                            >
+                              <Eye size={14} />
+                            </Button>
+                            <Button 
+                              variant="danger" 
+                              size="sm" 
+                              onClick={() => handleDeleteProject(project.id)}
+                              disabled={isLoading}
+                              title="Supprimer le projet"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </ButtonGroup>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </tbody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Show total stats if projects exist */}
+      {projects.length > 0 && (
+        <Card style={{ marginTop: "1rem" }}>
+          <CardContent style={{ padding: "1rem 1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem", color: "#6b7280" }}>
+              <span>Total des projets: <strong style={{ color: "#1f2937" }}>{projects.length}</strong></span>
+              <span>
+                Total des exigences: <strong style={{ color: "#1f2937" }}>
+                  {projects.reduce((sum, p) => sum + (p.requirements?.length || p.requirements_count || 0), 0)}
+                </strong>
+              </span>
+              <span>
+                Total des collaborateurs: <strong style={{ color: "#1f2937" }}>
+                  {projects.reduce((sum, p) => sum + (p.collaborator_details?.length || p.collaborator_count || 0), 0)}
+                </strong>
+              </span>
+            </div>
           </CardContent>
         </Card>
-      </AnimatedDiv>
-    )
-  }
+      )}
+    </AnimatedDiv>
+  )
+}
 
   return (
     <Container>
       <Header>
         <HeaderContainer>
-          <Logo>Admin Panel - AI Test Case Generator</Logo>
+          <Logo>Panneau Admin - Générateur de Cas de Test IA</Logo>
           <NavContainer>
             <NavButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>
-              Dashboard
+              Tableau de Bord
             </NavButton>
             <NavButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>
-              Users
+              Utilisateurs
             </NavButton>
             <NavButton active={activeTab === "projects"} onClick={() => setActiveTab("projects")}>
-              Projects
+              Projets
             </NavButton>
 
-            <NavButton onClick={handleLogout}>Logout</NavButton>
+            <NavButton onClick={handleLogout}>Déconnexion</NavButton>
           </NavContainer>
         </HeaderContainer>
       </Header>
@@ -1503,7 +1677,7 @@ export default function AdminPage() {
         {isLoading ? (
           <LoadingContainer>
             <LoadingSpinner />
-            <p style={{ color: "#6b7280", fontWeight: 500 }}>Loading data...</p>
+            <p style={{ color: "#6b7280", fontWeight: 500 }}>Chargement des données...</p>
           </LoadingContainer>
         ) : error ? (
           <ErrorAlert>
@@ -1523,45 +1697,45 @@ export default function AdminPage() {
       {showUserForm && (
         <Modal onClick={() => setShowUserForm(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Create New User</ModalTitle>
+            <ModalTitle>Créer un Nouvel Utilisateur</ModalTitle>
             <FormGroup>
-              <Label htmlFor="username">Username/Email</Label>
+              <Label htmlFor="username">Nom d'utilisateur/Email</Label>
               <Input
                 id="username"
                 type="text"
                 value={newUser.username}
                 onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                placeholder="Enter username/email"
+                placeholder="Entrez le nom d'utilisateur/email"
               />
             </FormGroup>
             <FormGroup>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Password"
+                placeholder="Mot de passe"
               />
             </FormGroup>
             <FormGroup>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Rôle</Label>
               <Select
                 id="role"
                 value={newUser.role}
                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
               >
-                <option value="user">User</option>
+                <option value="user">Utilisateur</option>
                 <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
               </Select>
             </FormGroup>
             <ModalFooter>
               <Button variant="outline" onClick={() => setShowUserForm(false)}>
-                Cancel
+                Annuler
               </Button>
               <Button variant="primary" onClick={handleCreateUser} disabled={!newUser.username || !newUser.password}>
-                Create User
+                Créer l'Utilisateur
               </Button>
             </ModalFooter>
           </ModalContent>
@@ -1572,27 +1746,27 @@ export default function AdminPage() {
       {showEditForm && editUser && (
         <Modal onClick={() => setShowEditForm(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Edit User: {editUser.username}</ModalTitle>
+            <ModalTitle>Modifier l'Utilisateur: {editUser.username}</ModalTitle>
             <FormGroup>
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="edit-role">Rôle</Label>
               <Select
                 id="edit-role"
                 value={editUser.role}
                 onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
               >
-                <option value="user">User</option>
+                <option value="user">Utilisateur</option>
                 <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
               </Select>
             </FormGroup>
             <FormGroup>
-              <Label htmlFor="edit-password">New Password (leave blank to keep current)</Label>
+              <Label htmlFor="edit-password">Nouveau Mot de passe (laisser vide pour conserver l'actuel)</Label>
               <Input
                 id="edit-password"
                 type="password"
                 value={editUser.newPassword || ""}
                 onChange={(e) => setEditUser({ ...editUser, newPassword: e.target.value })}
-                placeholder="New password (optional)"
+                placeholder="Nouveau mot de passe (optionnel)"
               />
             </FormGroup>
             <ModalFooter>
@@ -1603,10 +1777,10 @@ export default function AdminPage() {
                   setEditUser(null)
                 }}
               >
-                Cancel
+                Annuler
               </Button>
               <Button variant="primary" onClick={handleEditUser}>
-                Save Changes
+                Enregistrer les Modifications
               </Button>
             </ModalFooter>
           </ModalContent>

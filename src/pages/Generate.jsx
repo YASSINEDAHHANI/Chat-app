@@ -1623,7 +1623,7 @@ function Generate() {
             <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div style={styles.formSection}>
                 <label style={styles.formLabel} htmlFor="requirements">
-                  Description détaillée
+                  Exigence détaillée
                 </label>
                 <textarea
                   id="requirements"

@@ -1404,11 +1404,12 @@ function Requirements() {
               <div style={styles.modalBody}>
                 <div style={styles.formGroup}>
                   <label htmlFor="edit-title" style={styles.formLabel}>
-                    Titre
+                    Titre*
                   </label>
                   <input
                     id="edit-title"
                     type="text"
+                    required
                     style={{
                       ...styles.input,
                       ...(focusedInput === "edit-title" ? styles.inputFocus : {}),
@@ -1421,10 +1422,11 @@ function Requirements() {
                 </div>
                 <div style={styles.formGroup}>
                   <label htmlFor="edit-description" style={styles.formLabel}>
-                    Description
+                    Exigence*
                   </label>
                   <textarea
                     id="edit-description"
+                    required
                     rows={4}
                     style={{
                       ...styles.textarea,
