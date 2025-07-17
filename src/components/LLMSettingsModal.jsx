@@ -1,15 +1,14 @@
-// llm-settings-modal.jsx - Claude and Local RAG Only (NO GEMINI)
-
+// LLMSettingsModal.jsx - Correction pour MinIO RAG
 import React, { useState, useEffect } from 'react';
 import { Key, Cpu, Check, X, AlertCircle, Settings, MessageSquare } from 'lucide-react';
 
 const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
   const [settings, setSettings] = useState({
-    llm_service: 'local',
+    llm_service: 'minio',  // Changé de 'local' à 'minio'
     has_claude_key: false,
     api_key_validated: false,
-    local_available: true,
-    effective_service: 'local',
+    minio_available: true,  // Changé de 'local_available' à 'minio_available'
+    effective_service: 'minio',  // Changé de 'local' à 'minio'
     can_modify_settings: false,
     user_role: 'user'
   });
@@ -44,11 +43,11 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
       } else if (response.status === 404) {
         // No settings configured yet, use defaults
         setSettings({
-          llm_service: 'local',
+          llm_service: 'minio',  // Changé de 'local' à 'minio'
           has_claude_key: false,
           api_key_validated: false,
-          local_available: true,
-          effective_service: 'local',
+          minio_available: true,  // Changé de 'local_available' à 'minio_available'
+          effective_service: 'minio',  // Changé de 'local' à 'minio'
           can_modify_settings: false,
           user_role: 'user'
         });
@@ -160,11 +159,11 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
         setMessage('Veuillez saisir votre clé API Claude');
         setMessageType('');
       }
-    } else if (newLLMChoice === 'local') {
-      if (settings.local_available) {
-        await saveProjectSettings('local');
+    } else if (newLLMChoice === 'minio') {  // Changé de 'local' à 'minio'
+      if (settings.minio_available) {  // Changé de 'local_available' à 'minio_available'
+        await saveProjectSettings('minio');  // Changé de 'local' à 'minio'
       } else {
-        setMessage('Le système RAG local n\'est pas disponible');
+        setMessage('Le système RAG MinIO n\'est pas disponible');  // Message plus précis
         setMessageType('error');
       }
     }
@@ -196,7 +195,6 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
   };
 
   if (!isOpen) return null;
-
   const styles = {
     overlay: {
       position: 'fixed',
@@ -395,7 +393,7 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
     }
   };
 
-  return (
+   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
@@ -433,7 +431,7 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
           )}
 
           {/* No Service Warning */}
-          {!loading && settings.effective_service !== 'claude' && settings.effective_service !== 'local' && (
+          {!loading && settings.effective_service !== 'claude' && settings.effective_service !== 'minio' && (
             <div style={styles.noServiceWarning}>
               <div style={styles.noServiceTitle}>
                 <AlertCircle style={{ width: '1rem', height: '1rem' }} />
@@ -462,14 +460,14 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
                     </div>
                   </div>
                 </>
-              ) : settings.effective_service === 'local' ? (
+              ) : settings.effective_service === 'minio' ? (  // Changé de 'local' à 'minio'
                 <>
                   <Cpu style={{...styles.serviceIcon, color: "#2563eb"}} />
                   <div>
-                    <div style={styles.serviceTitle}>RAG Local</div>
+                    <div style={styles.serviceTitle}>RAG MinIO</div>  {/* Nom plus précis */}
                     <div style={styles.serviceDescription}>
-                      Utilise le système RAG local
-                      {!settings.local_available && (
+                      Utilise le système RAG MinIO
+                      {!settings.minio_available && (  // Changé de 'local_available' à 'minio_available'
                         <span style={{color: "#dc2626"}}> - Non Disponible</span>
                       )}
                     </div>
@@ -481,23 +479,11 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
                   <div>
                     <div style={styles.serviceTitle}>Aucun Service Configuré</div>
                     <div style={styles.serviceDescription}>
-                      Veuillez sélectionner Claude AI ou RAG Local ci-dessous
+                      Veuillez sélectionner Claude AI ou RAG MinIO ci-dessous
                     </div>
                   </div>
                 </>
               )}
-            </div>
-          </div>
-
-          {/* Chat Assistant Integration Info */}
-          <div style={styles.chatIntegrationInfo}>
-            <div style={styles.chatIntegrationTitle}>
-              <MessageSquare style={{ width: '1rem', height: '1rem' }} />
-              Intégration Assistant de Chat
-            </div>
-            <div style={styles.chatIntegrationText}>
-              L'assistant de chat et la génération de cas de test utiliseront automatiquement 
-              le service sélectionné ci-dessous. Seuls Claude AI et RAG Local sont supportés.
             </div>
           </div>
 
@@ -506,27 +492,27 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
             <div style={styles.servicesSection}>
               <h3 style={styles.sectionTitle}>Sélectionner le Service IA</h3>
               <div style={styles.serviceOptions}>
-                {/* Local RAG Option */}
+                {/* MinIO RAG Option - Changé de 'local' à 'minio' */}
                 <div style={{
                   ...styles.serviceOption,
-                  ...(settings.llm_service === 'local' && styles.serviceOptionSelected)
+                  ...(settings.llm_service === 'minio' && styles.serviceOptionSelected)
                 }}>
                   <label style={styles.serviceLabel}>
                     <input
                       type="radio"
                       name="llm_service"
-                      value="local"
-                      checked={settings.llm_service === 'local'}
-                      onChange={() => handleLLMChange('local')}
+                      value="minio"  // Changé de 'local' à 'minio'
+                      checked={settings.llm_service === 'minio'}  // Changé de 'local' à 'minio'
+                      onChange={() => handleLLMChange('minio')}  // Changé de 'local' à 'minio'
                       disabled={loading}
                     />
                     <Cpu style={{...styles.serviceIcon, color: "#2563eb"}} />
                     <div style={{ flex: 1 }}>
-                      <div style={styles.serviceTitle}>RAG Local</div>
+                      <div style={styles.serviceTitle}>RAG MinIO</div>  {/* Nom plus précis */}
                       <div style={styles.serviceDescription}>
-                        Utilise le système RAG local hébergé sur votre infrastructure.
+                        Utilise le système RAG MinIO hébergé sur votre infrastructure.
                         Aucune clé API requise.
-                        {!settings.local_available && (
+                        {!settings.minio_available && (  // Changé de 'local_available' à 'minio_available'
                           <span style={{color: "#dc2626"}}> (Non disponible actuellement)</span>
                         )}
                       </div>
@@ -534,7 +520,7 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
                   </label>
                 </div>
 
-                {/* Claude AI Option */}
+                {/* Claude AI Option - Reste identique */}
                 <div style={{
                   ...styles.serviceOption,
                   ...(settings.llm_service === 'claude' && styles.serviceOptionSelected)
@@ -563,7 +549,7 @@ const LLMSettingsModal = ({ isOpen, onClose, projectId, onSettingsChange }) => {
                 </div>
               </div>
 
-              {/* API Key Input Section */}
+              {/* API Key Input Section - Reste identique */}
               {showApiKeyInput && (
                 <div style={styles.apiKeySection}>
                   <div style={{ fontWeight: '500', marginBottom: '0.5rem' }}>

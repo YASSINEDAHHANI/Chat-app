@@ -143,36 +143,42 @@
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "0.625rem 1.25rem",
-      borderRadius: "0.375rem",
-      fontSize: "0.875rem",
-      fontWeight: "500",
+      padding: "0.7rem 1.5rem",
+      borderRadius: "0.5rem",
+      fontSize: "1rem",
+      fontWeight: "600",
       border: "none",
       cursor: "pointer",
-      transition: "all 0.2s",
+      transition: "background 0.2s, box-shadow 0.2s, color 0.2s",
+      outline: "none",
+      boxShadow: "0 2px 8px 0 rgba(90,32,155,0.08)",
     },
     primaryButton: {
-      backgroundColor: "#3b82f6",
-      color: "white",
+      background: "linear-gradient(90deg,#5a209b 0%,#7c3aed 100%)",
+      color: "#fff",
     },
     primaryButtonHover: {
-      backgroundColor: "#2563eb",
+      background: "linear-gradient(90deg,#43197a 0%,#5a209b 100%)",
+      color: "#fff",
+      boxShadow: "0 4px 16px 0 rgba(90,32,155,0.12)",
     },
     dangerButton: {
-      backgroundColor: "#dc2626",
-      color: "white",
+      background: "#dc2626",
+      color: "#fff",
     },
     dangerButtonHover: {
-      backgroundColor: "#b91c1c",
+      background: "#b91c1c",
+      color: "#fff",
     },
     outlineButton: {
-      backgroundColor: "transparent",
-      color: "#4b5563",
-      border: "1px solid rgba(0, 0, 0, 0.1)",
+      background: "#fff",
+      color: "#5a209b",
+      border: "1.5px solid #5a209b",
     },
     outlineButtonHover: {
-      backgroundColor: "rgba(0, 0, 0, 0.05)",
-      borderColor: "rgba(0, 0, 0, 0.2)",
+      background: "#f3e8ff",
+      color: "#43197a",
+      border: "1.5px solid #43197a",
     },
     buttonIcon: {
       marginRight: "0.5rem",
@@ -207,30 +213,30 @@
       gap: "1.5rem",
     },
     requirementCard: {
-      backgroundColor: "#ffffff", // White background
+      backgroundColor: "#fff",
       overflow: "hidden",
-      borderRadius: "0.5rem",
-      border: "1px solid rgba(0, 0, 0, 0.1)",
+      borderRadius: "1rem",
+      border: "1.5px solid #e9d5ff",
       transition: "all 0.2s",
-      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+      boxShadow: "0 2px 8px 0 rgba(90,32,155,0.06)",
     },
     requirementCardHover: {
-      borderColor: "rgba(0, 0, 0, 0.2)",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+      borderColor: "#5a209b",
+      boxShadow: "0 6px 24px 0 rgba(90,32,155,0.12)",
+      transform: "translateY(-2px) scale(1.01)",
     },
     cardHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      padding: "1.25rem",
-      borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+      padding: "1.5rem 1.5rem 0.5rem 1.5rem",
+      borderBottom: "1px solid #ede9fe",
     },
     cardTitle: {
-      fontSize: "1.125rem",
+      fontSize: "1.15rem",
       lineHeight: "1.5rem",
-      fontWeight: "600",
-      color: "#1f2937",
+      fontWeight: "700",
+      color: "#5a209b",
       margin: 0,
     },
     cardActions: {
@@ -239,7 +245,7 @@
       gap: "0.5rem",
     },
     cardContent: {
-      padding: "1.25rem",
+      padding: "1.5rem 1.5rem 0.5rem 1.5rem",
     },
     cardDescription: {
       color: "#6b7280",
@@ -256,37 +262,48 @@
       display: "inline-flex",
       alignItems: "center",
       borderRadius: "9999px",
-      padding: "0.25rem 0.75rem",
-      fontSize: "0.75rem",
-      fontWeight: "500",
+      padding: "0.3rem 0.9rem",
+      fontSize: "0.85rem",
+      fontWeight: "600",
+      letterSpacing: "0.01em",
+      background: "#f3e8ff",
+      color: "#5a209b",
+      border: "1px solid #e9d5ff",
     },
     categoryBadge: {
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
-      color: "#3b82f6",
+      background: "#ede9fe",
+      color: "#7c3aed",
+      border: "1px solid #c4b5fd",
     },
     priorityBadgeHigh: {
-      backgroundColor: "rgba(220, 38, 38, 0.1)",
+      background: "#fee2e2",
       color: "#dc2626",
+      border: "1px solid #fecaca",
     },
     priorityBadgeMedium: {
-      backgroundColor: "rgba(245, 158, 11, 0.1)",
+      background: "#fef9c3",
       color: "#f59e0b",
+      border: "1px solid #fde68a",
     },
     priorityBadgeLow: {
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
+      background: "#d1fae5",
       color: "#10b981",
+      border: "1px solid #6ee7b7",
     },
     statusBadgeApproved: {
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
+      background: "#d1fae5",
       color: "#10b981",
+      border: "1px solid #6ee7b7",
     },
     statusBadgeReview: {
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
-      color: "#3b82f6",
+      background: "#ede9fe",
+      color: "#7c3aed",
+      border: "1px solid #c4b5fd",
     },
     statusBadgeDraft: {
-      backgroundColor: "rgba(156, 163, 175, 0.1)",
+      background: "#f3f4f6",
       color: "#6b7280",
+      border: "1px solid #d1d5db",
     },
     cardFooter: {
       backgroundColor: "#f9fafb", // Light gray background
@@ -346,21 +363,21 @@
     },
     modalContent: {
       position: "relative",
-      backgroundColor: "#ffffff", // White background
-      borderRadius: "0.75rem",
+      backgroundColor: "#fff",
+      borderRadius: "1rem",
       overflow: "hidden",
       width: "100%",
       maxWidth: "32rem",
-      padding: "1.5rem",
+      padding: "2rem 2rem 1.5rem 2rem",
       maxHeight: "90vh",
       overflowY: "auto",
-      border: "1px solid rgba(0, 0, 0, 0.1)",
-      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      border: "1.5px solid #e9d5ff",
+      boxShadow: "0 25px 50px -12px rgba(90,32,155,0.18)",
     },
     modalTitle: {
       fontSize: "1.25rem",
-      fontWeight: "600",
-      color: "#1f2937",
+      fontWeight: "700",
+      color: "#5a209b",
       marginTop: 0,
       marginBottom: "0.5rem",
     },
@@ -397,35 +414,35 @@
     },
     input: {
       width: "100%",
-      padding: "0.625rem 0.75rem",
-      borderRadius: "0.375rem",
-      border: "1px solid rgba(0, 0, 0, 0.1)",
-      fontSize: "0.875rem",
+      padding: "0.7rem 1rem",
+      borderRadius: "0.5rem",
+      border: "1.5px solid #e9d5ff",
+      fontSize: "1rem",
       transition: "border-color 0.2s, box-shadow 0.2s",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#fff",
       color: "#1f2937",
     },
     inputFocus: {
       outline: "none",
-      borderColor: "#3b82f6",
-      boxShadow: "0 0 0 1px #3b82f6",
+      borderColor: "#5a209b",
+      boxShadow: "0 0 0 1.5px #5a209b",
     },
     textarea: {
       width: "100%",
-      padding: "0.625rem 0.75rem",
-      borderRadius: "0.375rem",
-      border: "1px solid rgba(0, 0, 0, 0.1)",
-      fontSize: "0.875rem",
+      padding: "0.7rem 1rem",
+      borderRadius: "0.5rem",
+      border: "1.5px solid #e9d5ff",
+      fontSize: "1rem",
       resize: "vertical",
       minHeight: "6rem",
       transition: "border-color 0.2s, box-shadow 0.2s",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#fff",
       color: "#1f2937",
     },
     textareaFocus: {
       outline: "none",
-      borderColor: "#3b82f6",
-      boxShadow: "0 0 0 1px #3b82f6",
+      borderColor: "#5a209b",
+      boxShadow: "0 0 0 1.5px #5a209b",
     },
     modalDivider: {
       borderTop: "1px solid rgba(0, 0, 0, 0.05)",
@@ -544,6 +561,34 @@ function Requirements() {
     category: "functionality",
   })
 
+  const [titleError, setTitleError] = useState("");
+  const [descriptionError, setDescriptionError] = useState("");
+  const [editTitleError, setEditTitleError] = useState("");
+
+  // Validation helpers
+  const isTitleValid = (title) => {
+    return (title.match(/[a-zA-Z0-9]/g) || []).length >= 3;
+  };
+  const isTitleUnique = (title) => {
+    const normalized = title.trim().toLowerCase().replace(/\s+/g, " ");
+    return !requirements.some(req => req.title.trim().toLowerCase().replace(/\s+/g, " ") === normalized);
+  };
+  const isDescriptionValid = (desc) => desc.trim().length > 0;
+
+  // Réinitialisation du formulaire à chaque ouverture de la modale d'ajout
+  useEffect(() => {
+    if (isAddDialogOpen) {
+      setNewRequirement({
+        title: "",
+        description: "",
+        status: "draft",
+        category: "functionality",
+      });
+      setTitleError("");
+      setDescriptionError("");
+    }
+  }, [isAddDialogOpen]);
+
   useEffect(() => {
     // Add custom styling to ensure no dark borders
     const styleTag = document.createElement("style")
@@ -601,9 +646,27 @@ function Requirements() {
   }, [projectId, navigate])
 
   const handleAddRequirement = async () => {
+    let hasError = false;
+    // Titre obligatoire, significatif, unique
+    if (!isTitleValid(newRequirement.title)) {
+      setTitleError("Le titre de l’exigence doit contenir au moins 3 caractères significatifs.");
+      hasError = true;
+    } else if (!isTitleUnique(newRequirement.title)) {
+      setTitleError("Une exigence avec ce titre existe déjà dans ce projet.");
+      hasError = true;
+    } else {
+      setTitleError("");
+    }
+    // Description obligatoire
+    if (!isDescriptionValid(newRequirement.description)) {
+      setDescriptionError("La description de l’exigence est obligatoire.");
+      hasError = true;
+    } else {
+      setDescriptionError("");
+    }
+    if (hasError) return;
     try {
       const response = await api.post(`/projects/${projectId}/requirements`, newRequirement)
-
       setRequirements([...requirements, response.data.requirement])
       setNewRequirement({
         title: "",
@@ -620,7 +683,11 @@ function Requirements() {
 
   const handleEditRequirement = async () => {
     if (!selectedRequirement) return
-
+    if (!isTitleValid(selectedRequirement.title)) {
+      setEditTitleError("Le titre de l’exigence doit contenir au moins 3 caractères significatifs.");
+      return;
+    }
+    setEditTitleError("");
     try {
       // Prepare the update data
       const updateData = {
@@ -973,7 +1040,7 @@ function Requirements() {
               <ArrowLeftIcon />
               Retour au tableau de bord
             </button>
-            <h1 style={styles.pageTitle}>{project ? `Exigences: ${project.name}` : "Chargement..."}</h1>
+            <h1 style={styles.pageTitle}>{project ? `Projet: ${project.name}` : "Chargement..."}</h1>
           </div>
           
           {/* UPDATED: Conditionally show LLM Settings button only for managers and admins */}
@@ -1276,7 +1343,7 @@ function Requirements() {
               <div style={styles.modalBody}>
                 <div style={styles.formGroup}>
                   <label htmlFor="title" style={styles.formLabel}>
-                    Titre
+                    Titre *
                   </label>
                   <input
                     id="title"
@@ -1287,14 +1354,27 @@ function Requirements() {
                     }}
                     placeholder="Titre de l'exigence"
                     value={newRequirement.title}
-                    onChange={(e) => setNewRequirement({ ...newRequirement, title: e.target.value })}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setNewRequirement({ ...newRequirement, title: value });
+                      if (!isTitleValid(value)) {
+                        setTitleError("Le titre de l’exigence doit contenir au moins 3 caractères significatifs.");
+                      } else if (!isTitleUnique(value)) {
+                        setTitleError("Une exigence avec ce titre existe déjà dans ce projet.");
+                      } else {
+                        setTitleError("");
+                      }
+                    }}
                     onFocus={() => setFocusedInput("title")}
                     onBlur={() => setFocusedInput(null)}
                   />
+                  {titleError && (
+                    <div style={{ color: "#dc2626", fontSize: "0.95rem", marginTop: "0.25rem", marginBottom: "0.5rem" }}>{titleError}</div>
+                  )}
                 </div>
                 <div style={styles.formGroup}>
                   <label htmlFor="description" style={styles.formLabel}>
-                    Description
+                    Description *
                   </label>
                   <textarea
                     id="description"
@@ -1305,10 +1385,21 @@ function Requirements() {
                     }}
                     placeholder="Description détaillée de l'exigence"
                     value={newRequirement.description}
-                    onChange={(e) => setNewRequirement({ ...newRequirement, description: e.target.value })}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setNewRequirement({ ...newRequirement, description: value });
+                      if (!isDescriptionValid(value)) {
+                        setDescriptionError("La description de l’exigence est obligatoire.");
+                      } else {
+                        setDescriptionError("");
+                      }
+                    }}
                     onFocus={() => setFocusedInput("description")}
                     onBlur={() => setFocusedInput(null)}
                   />
+                  {descriptionError && (
+                    <div style={{ color: "#dc2626", fontSize: "0.95rem", marginTop: "0.25rem", marginBottom: "0.5rem" }}>{descriptionError}</div>
+                  )}
                   <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
                     Utilisez des mots comme "crucial", "impératif" pour indiquer une haute priorité, ou "optionnel",
                     "souhaitable" pour une priorité basse.
@@ -1382,7 +1473,14 @@ function Requirements() {
                   onClick={handleAddRequirement}
                   onMouseEnter={() => setHoveredItem("confirm-add-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
-                  disabled={!newRequirement.title.trim()}
+                  disabled={
+                    !newRequirement.title.trim() ||
+                    !newRequirement.description.trim() ||
+                    !!titleError ||
+                    !!descriptionError ||
+                    !isTitleValid(newRequirement.title) ||
+                    !isDescriptionValid(newRequirement.description)
+                  }
                 >
                   Ajouter
                 </button>
@@ -1415,10 +1513,20 @@ function Requirements() {
                       ...(focusedInput === "edit-title" ? styles.inputFocus : {}),
                     }}
                     value={selectedRequirement.title}
-                    onChange={(e) => setSelectedRequirement({ ...selectedRequirement, title: e.target.value })}
+                    onChange={e => {
+                      setSelectedRequirement({ ...selectedRequirement, title: e.target.value });
+                      if (!isTitleValid(e.target.value)) {
+                        setEditTitleError("Le titre de l’exigence doit contenir au moins 3 caractères significatifs.");
+                      } else {
+                        setEditTitleError("");
+                      }
+                    }}
                     onFocus={() => setFocusedInput("edit-title")}
                     onBlur={() => setFocusedInput(null)}
                   />
+                  {editTitleError && (
+                    <div style={{ color: "#dc2626", fontSize: "0.85rem", marginTop: "0.25rem" }}>{editTitleError}</div>
+                  )}
                 </div>
                 <div style={styles.formGroup}>
                   <label htmlFor="edit-description" style={styles.formLabel}>
@@ -1579,7 +1687,7 @@ function Requirements() {
                   onClick={handleEditRequirement}
                   onMouseEnter={() => setHoveredItem("confirm-edit-btn")}
                   onMouseLeave={() => setHoveredItem(null)}
-                  disabled={!selectedRequirement.title.trim()}
+                  disabled={!selectedRequirement.title.trim() || !!editTitleError}
                 >
                   Enregistrer
                 </button>

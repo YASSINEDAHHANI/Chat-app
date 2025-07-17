@@ -35,14 +35,23 @@ const styles = {
     backgroundColor: "#f9fafb",
     display: "none",
     transition: "all 0.3s",
-    overflowY: "auto",
+    // ✅ REMOVED: overflowY: "auto" - this was causing the first scrollbar
+    maxHeight: "calc(100vh - 4rem)", // Keep height constraint
+    position: "relative",
   },
   sidebarMd: {
     display: "block",
   },
   sidebarContent: {
     padding: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    // ✅ ADDED: Full height to enable proper flex layout
+    height: "100%",
+    // ✅ ADDED: Prevent overflow on the container
+    overflow: "hidden",
   },
+  
   sidebarTitle: {
     fontSize: "1.125rem",
     fontWeight: "600",
@@ -50,6 +59,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     color: "#111827",
+    // ✅ ENHANCED: Make title sticky but within the flex container
+    flexShrink: "0", // Prevent title from shrinking
   },
   sidebarIcon: {
     marginRight: "0.5rem",
@@ -61,12 +72,23 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "1rem",
-    overflowY: "auto",
-    maxHeight: "calc(100vh - 8rem)",
+    // ✅ FIXED: Only this container should scroll
+    flex: "1", // Take remaining space
+    overflowY: "auto", // Only scrollbar here
+    overflowX: "hidden",
+    paddingRight: "0.5rem", // Space for scrollbar
+    // ✅ ENHANCED: Custom scrollbar styling
+    scrollbarWidth: "thin",
+    scrollbarColor: "#cbd5e1 #f1f5f9",
   },
   emptyHistory: {
     textAlign: "center",
     padding: "2rem 0",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "200px",
   },
   emptyHistoryIcon: {
     margin: "0 auto",
@@ -83,6 +105,9 @@ const styles = {
     border: "1px solid #e5e7eb",
     cursor: "pointer",
     transition: "all 0.2s",
+    // ✅ ENHANCED: Ensure items don't shrink too much
+    minHeight: "120px",
+    flexShrink: "0",
   },
   historyItemHover: {
     backgroundColor: "#f9fafb",
@@ -100,6 +125,10 @@ const styles = {
     fontWeight: "500",
     color: "#111827",
     marginBottom: "0.25rem",
+    // ✅ ENHANCED: Handle long titles better
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   historyItemMeta: {
     fontSize: "0.75rem",
@@ -108,6 +137,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "0.25rem",
+    flexWrap: "wrap",
   },
   historyButton: {
     marginTop: "0.5rem",
@@ -202,22 +232,24 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "0.375rem",
-    fontSize: "0.875rem",
-    fontWeight: "500",
+    padding: "0.7rem 1.5rem",
+    borderRadius: "0.5rem",
+    fontSize: "1rem",
+    fontWeight: "600",
     border: "none",
     cursor: "pointer",
-    transition: "all 0.2s",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    transition: "background 0.2s, box-shadow 0.2s, color 0.2s",
+    outline: "none",
+    boxShadow: "0 2px 8px 0 rgba(90,32,155,0.08)",
   },
   primaryButton: {
-    backgroundColor: "#4f46e5",
-    color: "white",
+    background: "linear-gradient(90deg,#5a209b 0%,#7c3aed 100%)",
+    color: "#fff",
   },
   primaryButtonHover: {
-    backgroundColor: "#4338ca",
-    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+    background: "linear-gradient(90deg,#43197a 0%,#5a209b 100%)",
+    color: "#fff",
+    boxShadow: "0 4px 16px 0 rgba(90,32,155,0.12)",
   },
   disabledButton: {
     opacity: "0.5",
@@ -330,13 +362,13 @@ const styles = {
     flexWrap: "wrap",
   },
   outlineButton: {
+    background: "#fff",
+    color: "#5a209b",
+    border: "1.5px solid #5a209b",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     padding: "0.625rem 1rem",
-    backgroundColor: "white",
-    color: "#374151",
-    border: "1px solid #d1d5db",
     borderRadius: "0.375rem",
     boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
     fontSize: "0.875rem",
@@ -346,8 +378,9 @@ const styles = {
     transition: "all 0.2s",
   },
   outlineButtonHover: {
-    backgroundColor: "#f9fafb",
-    borderColor: "#9ca3af",
+    background: "#f3e8ff",
+    color: "#43197a",
+    border: "1.5px solid #43197a",
   },
   actionIcon: {
     marginRight: "0.5rem",
@@ -655,7 +688,40 @@ const styles = {
     backgroundColor: "#f3f4f6",
     color: "#111827",
   },
+  // ✅ NEW: Scroll indicator styles
+  scrollIndicator: {
+    position: "absolute",
+    bottom: "1rem",
+    left: "50%",
+    transform: "translateX(-50%)",
+    fontSize: "0.75rem",
+    color: "#9ca3af",
+    backgroundColor: "rgba(249, 250, 251, 0.9)",
+    padding: "0.25rem 0.5rem",
+    borderRadius: "0.375rem",
+    border: "1px solid #e5e7eb",
+    backdropFilter: "blur(4px)",
+    zIndex: "5",
+  },
 }
+
+// ✅ ENHANCED: Add CSS for better scrollbar styling
+const scrollbarStyles = `
+  .history-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .history-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  .history-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .history-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+`;
 
 const requirementCategories = [
   { value: "functionality", label: "Fonctionnalité" },
@@ -676,23 +742,22 @@ const getCategoryLabel = (value) => {
 const getServiceColor = (service) => {
   switch(service) {
     case 'claude': return '#7c3aed';
-    case 'local': return '#2563eb';
-    default: return '#dc2626'; // Red for no service
+    case 'minio': return '#2563eb';  
+    default: return '#dc2626'; 
   }
 };
 
 const getServiceBackgroundColor = (service) => {
   switch(service) {
     case 'claude': return 'rgba(124, 58, 237, 0.1)';
-    case 'local': return 'rgba(37, 99, 235, 0.1)';
-    default: return 'rgba(220, 38, 38, 0.1)'; // Red for no service
+    case 'minio': return 'rgba(37, 99, 235, 0.1)';  
+    default: return 'rgba(220, 38, 38, 0.1)'; 
   }
 };
-
 const getServiceDisplayName = (service) => {
   switch(service) {
     case 'claude': return 'Claude AI';
-    case 'local': return 'Local RAG';
+    case 'minio': return 'MinIO RAG';  
     default: return 'Non configuré';
   }
 };
@@ -727,11 +792,22 @@ function Generate() {
   const [focusedInput, setFocusedInput] = useState(null)
   const [currentApiService, setCurrentApiService] = useState('none')
   const [abortController, setAbortController] = useState(null);
+  // ✅ NEW: Scroll-related state
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
   // Keep track of processed text length to avoid reprocessing
   let processedLength = 0;
   let responseText = "";
   let updatedTestsFound = false;
+
+  // ✅ NEW: Scroll detection for history list
+  const handleHistoryScroll = (e) => {
+    const element = e.target;
+    const isScrollable = element.scrollHeight > element.clientHeight;
+    const isAtBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 10;
+    
+    setShowScrollIndicator(isScrollable && !isAtBottom);
+  };
 
   // Media query handling
   useEffect(() => {
@@ -817,6 +893,7 @@ function Generate() {
     }
   }, [projectId, selectedRequirement?.id, requirementId]);
 
+  // ✅ NEW: Inject scrollbar styles
   useEffect(() => {
     const styleTag = document.createElement("style")
     styleTag.type = "text/css"
@@ -830,6 +907,7 @@ function Generate() {
         50% { opacity: 1; }
         100% { opacity: 0.3; }
       }
+      ${scrollbarStyles}
     `
     document.head.appendChild(styleTag)
 
@@ -842,57 +920,117 @@ function Generate() {
 
   // Single unified history fetch function
   const fetchHistory = async () => {
-    try {
-      console.log("Fetching history...", { projectId, selectedRequirement, requirementId });
-      
-      if (!projectId) {
-        console.log("No project ID, clearing history");
-        setHistoryItems([]);
-        return;
-      }
+  try {
+    console.log("Fetching history...", { projectId, selectedRequirement, requirementId });
+    
+    if (!projectId) {
+      console.log("No project ID, clearing history");
+      setHistoryItems([]);
+      return;
+    }
 
-      const params = new URLSearchParams();
-      params.append("project_id", projectId);
+    const params = new URLSearchParams();
+    params.append("project_id", projectId);
 
-      const reqId = selectedRequirement?.id || requirementId;
-      if (reqId) {
-        params.append("requirement_id", reqId);
-      }
+    const reqId = selectedRequirement?.id || requirementId;
+    if (reqId) {
+      params.append("requirement_id", reqId);
+    }
 
-      const response = await api.get(`/history?${params.toString()}`);
-      console.log("History response:", response.data);
+    const response = await api.get(`/history?${params.toString()}`);
+    console.log("📥 Raw history response:", response.data);
 
-      if (response.data.history && response.data.history.length > 0) {
-        const formattedHistory = response.data.history
-          .filter((item) => item.test_cases)
-          .map((item, index) => ({
+    if (response.data.history && response.data.history.length > 0) {
+      const formattedHistory = response.data.history
+        .filter((item) => item.test_cases)
+        .map((item, index) => {
+          // ✅ ENHANCED: Detailed source detection with debugging
+          let updateSource = "Generated";  // Default
+          
+          console.log(`🔍 Analyzing history item ${item._id}:`, {
+            source: item.source,
+            update_type: item.update_type,
+            generation_method: item.generation_method,
+            modified_by_ai: item.modified_by_ai,
+            ai_service: item.ai_service
+          });
+          
+          // Priority 1: Check explicit source markers
+          if (item.source === "initial_generation" || 
+              item.source === "streaming_generation" || 
+              item.generation_method === "api_call" || 
+              item.generation_method === "stream_api") {
+            updateSource = "Generated";
+            console.log(`  → Marked as Generated (source/method)`);
+          }
+          // Priority 2: Check chat modifications
+          else if (item.source === "chat_modification" || 
+                   item.generation_method === "chat_interaction" ||
+                   item.update_type === "ai_assistant" ||
+                   item.update_type === "chat_modification") {
+            updateSource = "AI Assistant";
+            console.log(`  → Marked as AI Assistant (chat)`);
+          }
+          // Priority 3: Check modified_by_ai flag
+          else if (item.modified_by_ai === true) {
+            updateSource = "AI Assistant";
+            console.log(`  → Marked as AI Assistant (modified_by_ai)`);
+          }
+          // Priority 4: Check manual edit
+          else if (item.update_type === "manual_edit") {
+            updateSource = "Manual Edit";
+            console.log(`  → Marked as Manual Edit`);
+          }
+          // Priority 5: Legacy - if has ai_service but update_type is "generated"
+          else if (item.ai_service && item.update_type === "generated") {
+            updateSource = "Generated";
+            console.log(`  → Marked as Generated (legacy ai_service)`);
+          }
+          // Priority 6: Fallback - if has ai_service without clear markers
+          else if (item.ai_service && !item.update_type) {
+            updateSource = "Generated";  // Assume it's initial generation
+            console.log(`  → Marked as Generated (fallback)`);
+          }
+          
+          console.log(`✅ Final decision for ${item._id}: ${updateSource}`);
+          
+          return {
             id: item._id,
             requirementId: item.requirement_id || "",
             requirementTitle: item.requirement_title || "Unnamed Requirement",
             version: response.data.history.length - index,
             testCases: item.test_cases,
             date: new Date(item.timestamp).toLocaleString(),
-            updateSource: item.update_type === "ai_assistant" 
-              ? "AI Assistant" 
-              : item.update_type === "manual_edit" 
-                ? "Manual Edit" 
-                : "Generated",
+            updateSource: updateSource,
             isActive: item._id === activeHistoryId,
-            versionNumber: item.version_number
-          }));
+            versionNumber: item.version_number,
+            serviceUsed: item.ai_service || 'unknown',
+            // Debug info (remove in production)
+            debugInfo: {
+              source: item.source,
+              update_type: item.update_type,
+              generation_method: item.generation_method,
+              modified_by_ai: item.modified_by_ai
+            }
+          };
+        });
 
-        setHistoryItems(formattedHistory);
-        console.log("History loaded:", formattedHistory.length, "items");
-      } else {
-        setHistoryItems([]);
-        console.log("No history found");
-      }
-    } catch (error) {
-      console.error("Error fetching history:", error);
+      setHistoryItems(formattedHistory);
+      console.log("📋 History loaded:", formattedHistory.length, "items");
+      
+      // ✅ Debug: Log the final update sources
+      formattedHistory.forEach(item => {
+        console.log(`📌 ${item.id}: ${item.updateSource}`, item.debugInfo);
+      });
+    } else {
       setHistoryItems([]);
+      console.log("No history found");
     }
-  };
-
+  } catch (error) {
+    console.error("❌ Error fetching history:", error);
+    setHistoryItems([]);
+  }
+};
   const handleCreateRequirement = () => {
     if (!newRequirementTitle.trim()) return
 
@@ -1095,230 +1233,251 @@ function Generate() {
 
   // Updated handleChatSubmit function with project validation
   const handleChatSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!currentMessage.trim()) return;
+  if (!currentMessage.trim()) return;
 
-    // Check if project has AI service configured
-    if (currentApiService === 'none') {
-      alert("Aucun service IA configuré pour ce projet. Contactez votre manager pour configurer Claude API ou s'assurer que le RAG local est disponible.");
-      return;
-    }
+  // Check if project has AI service configured
+  if (currentApiService === 'none') {
+    alert("Aucun service IA configuré pour ce projet. Contactez votre manager pour configurer Claude API ou s'assurer que le RAG local est disponible.");
+    return;
+  }
 
-    console.log("Starting chat request with message:", currentMessage);
-    console.log("Current activeHistoryId:", activeHistoryId);
-    console.log("Direct chat mode:", directChatMode);
-    console.log("Generated tests length:", generatedTests?.length || 0);
+  console.log("🤖 Starting AI chat request:");
+  console.log("- Message:", currentMessage);
+  console.log("- Project ID:", projectId);
+  console.log("- Active History ID:", activeHistoryId);
+  console.log("- Direct Chat Mode:", directChatMode);
+  console.log("- Current Service:", currentApiService);
+  console.log("- Generated Tests Length:", generatedTests?.length || 0);
+  
+  // Add user message to chat immediately
+  const userMessage = { role: "user", content: currentMessage };
+  setChatMessages(prev => [...prev, userMessage]);
+  setCurrentMessage("");
+
+  const tempId = Date.now().toString();
+  setChatMessages(prev => [...prev, { 
+    id: tempId, 
+    role: "assistant", 
+    content: "Thinking...", 
+    isPartial: true 
+  }]);
+
+     processedLength = 0;
+  responseText = "";
+  updatedTestsFound = false;
+
+  try {
+    const requestData = {
+      message: userMessage.content,
+      project_id: projectId,
+      test_cases: generatedTests || "",
+      requirement_id: selectedRequirement?.id || null,
+      requirement_title: selectedRequirement?.title || newRequirementTitle,
+      requirements: requirementsDescription,
+      chat_history: chatMessages.filter(msg => !msg.isPartial),
+      direct_mode: directChatMode,
+      active_history_id: activeHistoryId,
+    };
+
+    console.log("📤 Sending chat request...");
+
+    setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
+
+    const response = await api({
+      method: 'post',
+      url: '/chat_with_assistant',
+      data: requestData,
+      responseType: 'text',
+      onDownloadProgress: (progressEvent) => {
+        const text = progressEvent.event.target.responseText;
+        processSSEResponse(text);
+      }
+    });
     
-    // Add user message to chat immediately
-    const userMessage = { role: "user", content: currentMessage };
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage("");
-
-    const tempId = Date.now().toString();
-    setChatMessages(prev => [...prev, { 
-      id: tempId, 
-      role: "assistant", 
-      content: "Thinking...", 
-      isPartial: true 
-    }]);
-
-    // Reset processing variables
-    processedLength = 0;
-    responseText = "";
-    updatedTestsFound = false;
-
-    try {
-      const requestData = {
-        message: userMessage.content,
-        project_id: projectId, // *** ALWAYS INCLUDE PROJECT ID ***
-        test_cases: generatedTests || "",
-        requirement_id: selectedRequirement?.id || null,
-        requirement_title: selectedRequirement?.title || newRequirementTitle,
-        requirements: requirementsDescription,
-        chat_history: chatMessages.filter(msg => !msg.isPartial),
-        direct_mode: directChatMode,
-        active_history_id: activeHistoryId,
-      };
-
-      console.log("Sending chat request with data:", {
-        message: requestData.message,
-        projectId: requestData.project_id,
-        directMode: requestData.direct_mode,
-        activeHistoryId: requestData.active_history_id,
-        testCasesLength: requestData.test_cases.length,
-        currentService: currentApiService
-      });
-
-      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-
-      const response = await api({
-        method: 'post',
-        url: '/chat_with_assistant',
-        data: requestData,
-        responseType: 'text',
-        onDownloadProgress: (progressEvent) => {
-          const text = progressEvent.event.target.responseText;
-          processSSEResponse(text);
-        }
-      });
+  } catch (error) {
+    console.error("❌ Chat error:", error);
+    
+    setChatMessages(prev => {
+      const filtered = prev.filter(msg => msg.id !== tempId);
       
-    } catch (error) {
-      console.error("Chat error:", error);
+      let errorMessage = "Erreur de communication avec le service IA.";
       
-      setChatMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== tempId);
-        
-        let errorMessage = "Erreur de communication avec le service IA.";
-        
-        if (error.response?.data?.error) {
-          errorMessage = error.response.data.error;
-        } else if (error.message) {
-          if (error.message.includes('No AI service configured')) {
-            errorMessage = "Aucun service IA configuré. Contactez votre manager.";
-          } else {
-            errorMessage = `Erreur: ${error.message}`;
-          }
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        if (error.message.includes('No AI service configured')) {
+          errorMessage = "Aucun service IA configuré. Contactez votre manager.";
+        } else {
+          errorMessage = `Erreur: ${error.message}`;
         }
-        
-        return [...filtered, {
-          role: "assistant",
-          content: errorMessage
-        }];
-      });
-    }
-  };
+      }
+      
+      return [...filtered, {
+        role: "assistant",
+        content: errorMessage
+      }];
+    });
+  }
+};
 
-  // Enhanced error handling for SSE responses
   const processSSEResponse = (text) => {
-    // Only process the new part of the text
-    const newText = text.substring(processedLength);
-    processedLength = text.length;
+  // Only process the new part of the text
+  const newText = text.substring(processedLength);
+  processedLength = text.length;
+  
+  if (!newText) return;
+  
+  // Split by double newlines which typically separate SSE messages
+  const messages = newText.split('\n\n');
+  
+  for (const message of messages) {
+    if (!message.trim()) continue;
     
-    if (!newText) return;
-    
-    // Split by double newlines which typically separate SSE messages
-    const messages = newText.split('\n\n');
-    
-    for (const message of messages) {
-      if (!message.trim()) continue;
-      
-      // Process each line that starts with "data: "
-      const lines = message.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.replace('data: ', '');
+    // Process each line that starts with "data: "
+    const lines = message.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.replace('data: ', '');
+        
+        if (data === "[DONE]") {
+          console.log("Received DONE marker");
           
-          if (data === "[DONE]") {
-            console.log("Received DONE marker");
+          // Handle any remaining response text if no test updates were found
+          if (responseText && !updatedTestsFound) {
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+              role: "assistant",
+              content: responseText
+            }]);
+          }
+          
+          // Reset processing variables for next chat
+          processedLength = 0;
+          responseText = "";
+          updatedTestsFound = false;
+          continue;
+        }
+        
+        try {
+          const parsed = JSON.parse(data);
+          
+          // Handle errors from AI services
+          if (parsed.error) {
+            let errorMsg = parsed.error;
             
-            // Handle any remaining response text if no test updates were found
-            if (responseText && !updatedTestsFound) {
-              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
-                role: "assistant",
-                content: responseText
-              }]);
+            // Provide helpful error messages for common issues
+            if (errorMsg.includes('No AI service configured') || 
+                errorMsg.includes('Claude API not configured') ||
+                errorMsg.includes('MinIO RAG system not available')) {
+              errorMsg += "\n\nContactez votre manager pour configurer le service IA du projet.";
             }
             
-            // Reset processing variables for next chat
-            processedLength = 0;
-            responseText = "";
-            updatedTestsFound = false;
+            setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
+              role: "assistant",
+              content: `Erreur: ${errorMsg}`
+            }]);
             continue;
           }
           
-          try {
-            const parsed = JSON.parse(data);
+          // Handle service information
+          if (parsed.service_used) {
+            console.log(`Response generated using: ${parsed.service_used}`);
+          }
+          
+          // ✅ FIXED: Handle updated test cases with immediate UI updates
+          if (parsed.updated_test_cases) {
+            updatedTestsFound = true;
+            const updatedTests = parsed.updated_test_cases;
             
-            // Handle errors from AI services
-            if (parsed.error) {
-              let errorMsg = parsed.error;
-              
-              // Provide helpful error messages for common issues
-              if (errorMsg.includes('No AI service configured') || 
-                  errorMsg.includes('Claude API not configured') ||
-                  errorMsg.includes('Local RAG system not available')) {
-                errorMsg += "\n\nContactez votre manager pour configurer le service IA du projet.";
-              }
-              
-              setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), {
-                role: "assistant",
-                content: `Erreur: ${errorMsg}`
-              }]);
-              continue;
+            console.log("✅ Received updated test cases from AI assistant");
+            console.log("Updated test cases length:", updatedTests.length);
+            
+            // 🔥 IMMEDIATE UI UPDATES
+            setGeneratedTests(updatedTests);
+            setEditedTests(updatedTests);
+            
+            // Exit editing mode if we're in it
+            if (isEditing) {
+              setIsEditing(false);
+              console.log("Exited editing mode due to AI update");
             }
             
-            // Handle service information
-            if (parsed.service_used) {
-              console.log(`Response generated using: ${parsed.service_used}`);
+            // Update active history immediately if we have an ID
+            if (activeHistoryId) {
+              console.log("🔄 Updating active history item immediately");
+              setHistoryItems(prev => prev.map(item => 
+                item.id === activeHistoryId 
+                  ? { 
+                      ...item, 
+                      testCases: updatedTests,
+                      updateSource: "AI Assistant", // ✅ FIXED: Mark as AI Assistant
+                      date: new Date().toLocaleString(), // Update timestamp
+                      debugInfo: {
+                        ...item.debugInfo,
+                        immediateUpdate: true,
+                        updatedAt: new Date().toISOString()
+                      }
+                    }
+                  : item
+              ));
             }
             
-            // Handle updated test cases
-            if (parsed.updated_test_cases) {
-              updatedTestsFound = true;
-              const updatedTests = parsed.updated_test_cases;
-              
-              console.log("Received updated test cases from chat");
-              console.log("Updated test cases length:", updatedTests.length);
-              
-              // Update the test cases in the UI immediately
-              setGeneratedTests(updatedTests);
-              setEditedTests(updatedTests);
-              
-              // Exit editing mode if we're in it
-              if (isEditing) {
-                setIsEditing(false);
-                console.log("Exited editing mode due to AI update");
-              }
-              
-              // Show confirmation message
-              const confirmationMessage = parsed.confirmation || "✅ Modifications appliquées avec succès.";
+            // Show confirmation message
+                const confirmationMessage = parsed.confirmation || "✅ Modifications appliquées avec succès.";
               setChatMessages(prev => [...prev.filter(msg => !msg.isPartial), { 
                 role: "assistant", 
                 content: confirmationMessage
               }]);
               
-              // Refresh history after AI modification
+              // 🔥 FORCE IMMEDIATE REFRESH with shorter delay
               setTimeout(() => {
-                console.log("Refreshing history after AI modification");
+                console.log("🔄 Force refreshing history after AI modification");
                 fetchHistory();
-              }, 500);
-              continue;
-            }
-            
-            // Handle regular message chunks
-            if (parsed.message) {
-              responseText += parsed.message;
+              }, 200); // Slightly longer delay to ensure backend update is complete
               
-              // Update the streaming message
-              setChatMessages(prev => {
-                const filtered = prev.filter(msg => !msg.isPartial);
-                return [...filtered, {
-                  role: "assistant",
-                  content: responseText,
-                  isPartial: true
-                }];
-              });
-            }
+              // Force re-render of test cases area
+              const testCaseContainer = document.getElementById('test-case-container');
+              if (testCaseContainer) {
+                testCaseContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+              
+              continue;
+          }
+          
+          // Handle regular message chunks
+          if (parsed.message) {
+            responseText += parsed.message;
             
-          } catch (e) {
-            // Not JSON, treat as plain text
-            responseText += data;
-            
-            // Update the partial message
+            // Update the streaming message
             setChatMessages(prev => {
               const filtered = prev.filter(msg => !msg.isPartial);
               return [...filtered, {
-                role: "assistant", 
+                role: "assistant",
                 content: responseText,
                 isPartial: true
               }];
             });
           }
+          
+        } catch (e) {
+          // Not JSON, treat as plain text
+          responseText += data;
+          
+          // Update the partial message
+          setChatMessages(prev => {
+            const filtered = prev.filter(msg => !msg.isPartial);
+            return [...filtered, {
+              role: "assistant", 
+              content: responseText,
+              isPartial: true
+            }];
+          });
         }
       }
     }
-  };
+  }
+};
 
   const getSidebarStyle = () => {
     if (windowWidth >= 768) {
@@ -2071,5 +2230,4 @@ function Generate() {
     </div>
   )
 }
-
 export default Generate

@@ -1,53 +1,76 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import logoImage from "../shared-theme/logo-test-case.png"
 import api from "../api"
 
-import logoImage from"../shared-theme/logo-test-case.png"
+const errorMessages = {
+  invalidEmail: "Adresse e-mail invalide.",
+  invalidPassword: "Mot de passe incorrect.",
+  required: "Ce champ est requis.",
+  unknown: "Erreur de connexion. Veuillez réessayer.",
+  notFound: "Email ou mot de passe incorrect.",
+}
+
 const SignIn = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [emailError, setEmailError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [formError, setFormError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const navigate = useNavigate()
+  const [showForgotMsg, setShowForgotMsg] = useState(false)
 
-  const validateInputs = () => {
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setError("Veuillez entrer une adresse e-mail valide.")
-      return false
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setEmailError("")
+    setPasswordError("")
+    setFormError("")
+    let valid = true
+    if (!email) {
+      setEmailError(errorMessages.required)
+      valid = false
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      setEmailError(errorMessages.invalidEmail)
+      valid = false
     }
-    if (!password || password.length < 6) {
-      setError("Mot de passe incorrect")
-      return false
+    if (!password) {
+      setPasswordError(errorMessages.required)
+      valid = false
+    } else if (password.length < 6) {
+      setPasswordError(errorMessages.invalidPassword)
+      valid = false
     }
-    setError("")
-    return true
-  }
-
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    if (!validateInputs()) return
-
+    if (!valid) return
+    setIsLoading(true)
     try {
-      setIsLoading(true)
       const response = await api.post("/login", {
         username: email,
         password: password,
       })
-
       if (response.data.message === "Login successful") {
+        // Redirection selon le rôle (à adapter si besoin)
         if (response.data.is_admin) {
-          navigate("/admin")
-        } else if (response.data.is_manager) {
-          navigate("/dashboard")
+          window.location.href = "/admin"
         } else {
-          navigate("/dashboard")
+          window.location.href = "/dashboard"
         }
+      } else if (response.data.error === "Invalid email") {
+        setEmailError(errorMessages.invalidEmail)
+      } else if (response.data.error === "Invalid password") {
+        setPasswordError(errorMessages.invalidPassword)
       } else {
-        setError("Identifiants invalides")
+        setFormError(errorMessages.notFound)
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Échec de la connexion")
+      if (err.response?.data?.error === "Invalid email") {
+        setEmailError(errorMessages.invalidEmail)
+      } else if (err.response?.data?.error === "Invalid password") {
+        setPasswordError(errorMessages.invalidPassword)
+      } else if (err.response?.data?.error) {
+        setFormError(err.response.data.error)
+      } else {
+        setFormError(errorMessages.unknown)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -57,262 +80,187 @@ const SignIn = () => {
     const styleTag = document.createElement("style")
     styleTag.type = "text/css"
     styleTag.innerHTML = `
-      * {
+      html, body {
+        min-height: 100vh;
         margin: 0;
         padding: 0;
+        font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+        background: #f4f6fb;
+        color: #232946;
         box-sizing: border-box;
       }
-      
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        background: #f8f9fa;
-        color: #333;
-        line-height: 1.6;
-      }
-      
-      .container {
+      .signin-bg {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 2rem 1rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        position: relative;
+        background: #f4f6fb;
+        width: 100vw;
+        box-sizing: border-box;
       }
-      
-      .logo-container {
-        position: absolute;
-        top: 2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(255, 255, 255, 0.95);
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+      .signin-logo {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2.5rem;
       }
-      
-      .logo {
+      .signin-logo img {
         height: 60px;
-        width: auto;
-        max-width: 200px;
+        max-width: 180px;
         object-fit: contain;
       }
-      
-      .security-badge {
-        text-align: center;
-        margin-bottom: 2rem;
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 0.875rem;
-        font-weight: 500;
-      }
-      
-      .card {
-        background: rgba(255, 255, 255, 0.98);
-        border-radius: 16px;
-        padding: 3rem 2.5rem;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        width: 100%;
-        max-width: 420px;
-        margin-top: 6rem;
-      }
-      
-      .title {
-        font-size: 2rem;
-        font-weight: 600;
-        text-align: center;
-        margin-bottom: 0.5rem;
-        color: #1a1a1a;
-      }
-      
-      .subtitle {
-        text-align: center;
-        color: #666;
-        margin-bottom: 2.5rem;
-        font-size: 0.95rem;
-      }
-      
-      .form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-      
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      
-      .label {
-        font-weight: 500;
-        color: #374151;
-        font-size: 0.875rem;
-      }
-      
-      .input-container {
-        position: relative;
-      }
-      
-      .input-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 1.125rem;
-      }
-      
-      .input {
-        width: 100%;
-        padding: 0.875rem 1rem;
-        padding-left: 3rem;
-        border: 1.5px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
+      .signin-card {
         background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(49,46,129,0.10);
+        padding: 2.5rem 2.2rem 2rem 2.2rem;
+        max-width: 370px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
       }
-      
-      .input:focus {
-        outline: none;
-        border-color: #8b5cf6;
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+      .signin-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 0.7rem;
+        color: #312e81;
       }
-      
-      .input::placeholder {
-        color: #9ca3af;
+      .signin-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.3rem;
       }
-      
-      .password-toggle {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: #9ca3af;
-        cursor: pointer;
-        font-size: 1.125rem;
-        padding: 0.25rem;
+      .signin-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
       }
-      
-      .password-toggle:hover {
-        color: #6b7280;
+      .signin-label {
+        font-weight: 500;
+        color: #232946;
+        font-size: 0.97rem;
+        margin-bottom: 0.1rem;
       }
-      
-      .checkbox-container {
+      .signin-input-wrap {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin: 0.5rem 0;
       }
-      
-      .checkbox {
-        width: 1.125rem;
-        height: 1.125rem;
-        accent-color: #8b5cf6;
+      .signin-input-icon {
+        position: absolute;
+        left: 1rem;
+        color: #a5b4fc;
+        font-size: 1.1rem;
+        pointer-events: none;
       }
-      
-      .checkbox-label {
-        font-size: 0.875rem;
-        color: #4b5563;
-        cursor: pointer;
-      }
-      
-      .button {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-        color: white;
-        border: none;
-        padding: 0.875rem 1.5rem;
+      .signin-input {
+        width: 100%;
+        padding: 0.8rem 1rem 0.8rem 2.7rem;
+        border: 1.5px solid #e5e7eb;
         border-radius: 8px;
         font-size: 1rem;
+        background: #f8fafc;
+        transition: border 0.2s;
+        box-sizing: border-box;
+      }
+      .signin-input:focus {
+        outline: none;
+        border-color: #6366f1;
+        background: #fff;
+      }
+      .signin-toggle {
+        position: absolute;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: #a5b4fc;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0.2rem;
+      }
+      .signin-toggle:hover {
+        color: #6366f1;
+      }
+      .signin-error {
+        color: #dc2626;
+        font-size: 0.92rem;
+        margin-top: 0.2rem;
+        margin-bottom: 0.1rem;
+        min-height: 1.1em;
+      }
+      .signin-form-error {
+        background: rgba(239, 68, 68, 0.09);
+        color: #dc2626;
+        border-radius: 8px;
+        border: 1px solid rgba(239, 68, 68, 0.18);
+        font-size: 0.98rem;
+        padding: 0.7rem 1rem;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+      .signin-btn {
+        background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);
+        color: #fff;
+        border: none;
+        padding: 0.85rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1.08rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
-        margin-top: 0.5rem;
+        transition: background 0.2s, box-shadow 0.2s;
+        margin-top: 0.2rem;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.08);
       }
-      
-      .button:hover:not(:disabled) {
-        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+      .signin-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #312e81 0%, #6366f1 100%);
+        box-shadow: 0 8px 25px rgba(99,102,241,0.13);
       }
-      
-      .button:disabled {
+      .signin-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        transform: none;
       }
-      
-      .error {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-        padding: 0.875rem 1rem;
-        border-radius: 8px;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
+      .signin-forgot {
+        text-align: right;
+        margin-top: 0.2rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.93rem;
       }
-      
-      .help-link {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.875rem;
-        color: #6b7280;
-      }
-      
-      .help-link a {
-        color: #8b5cf6;
+      .signin-forgot a {
+        color: #312e81;
         text-decoration: none;
         font-weight: 500;
       }
-      
-      .help-link a:hover {
+      .signin-forgot a:hover {
         text-decoration: underline;
       }
-      
-      .footer {
-        position: absolute;
-        bottom: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
+      .signin-footer {
+        margin-top: 2.5rem;
         text-align: center;
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 0.75rem;
+        color: #312e81cc;
+        font-size: 0.85rem;
         line-height: 1.4;
+        width: 100vw;
       }
-      
-      @media (max-width: 640px) {
-        .container {
-          padding: 1rem;
+      @media (max-width: 600px) {
+        .signin-card {
+          padding: 1.2rem 0.5rem 1rem 0.5rem;
+          max-width: 98vw;
         }
-        
-        .logo-container {
-          top: 1rem;
-          padding: 0.75rem 1.5rem;
+        .signin-logo img {
+          height: 40px;
         }
-        
-        .logo {
-          height: 50px;
+        .signin-title {
+          font-size: 1.1rem;
         }
-        
-        .card {
-          padding: 2rem 1.5rem;
-          margin-top: 5rem;
-        }
-        
-        .title {
-          font-size: 1.75rem;
+        .signin-footer {
+          font-size: 0.7rem;
         }
       }
     `
     document.head.appendChild(styleTag)
-
     return () => {
       if (document.head.contains(styleTag)) {
         document.head.removeChild(styleTag)
@@ -321,100 +269,77 @@ const SignIn = () => {
   }, [])
 
   return (
-    <div className="container">
-      {/* Logo at the top */}
-      <div className="logo-container">
-        <img
-          src={logoImage}
-          alt="DXC Technology"
-          className="logo"
-        />
+    <div className="signin-bg">
+      <div className="signin-logo">
+        <img src={logoImage} alt="Logo entreprise" />
       </div>
-
-      {/* Security badge */}
-      <div className="security-badge">Connexion sécurisée</div>
-
-      {/* Main login card */}
-      <div className="card">
-        <h1 className="title">Connexion</h1>
-        <p className="subtitle">Connectez-vous à votre compte professionnel</p>
-
-        {error && <div className="error">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="form">
-          <div className="form-group">
-            <label htmlFor="email" className="label">
-              Adresse e-mail
-            </label>
-            <div className="input-container">
-              <span className="input-icon">📧</span>
+      <form className="signin-card" onSubmit={handleSubmit} autoComplete="off">
+        <div className="signin-title">Connexion</div>
+        {formError && <div className="signin-form-error">{formError}</div>}
+        {showForgotMsg && (
+          <div className="signin-form-error" style={{background:'#f1f5ff', color:'#232946', border:'1px solid #6366f1'}}>
+            Pour réinitialiser votre mot de passe, veuillez contacter l'administrateur à <b>admin@dxc.com</b>.
+          </div>
+        )}
+        <div className="signin-form">
+          <div className="signin-group">
+            <label htmlFor="email" className="signin-label">Adresse e-mail</label>
+            <div className="signin-input-wrap">
+              <span className="signin-input-icon" aria-hidden>📧</span>
               <input
                 id="email"
                 type="email"
-                className="input"
-                placeholder="votre.email@dxc.com"
+                className="signin-input"
+                placeholder="votre.email@entreprise.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
+                autoFocus
+                aria-invalid={!!emailError}
+                aria-describedby="email-error"
                 required
               />
             </div>
+            <div className="signin-error" id="email-error">{emailError}</div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password" className="label">
-              Mot de passe
-            </label>
-            <div className="input-container">
-              <span className="input-icon">🔒</span>
+          <div className="signin-group">
+            <label htmlFor="password" className="signin-label">Mot de passe</label>
+            <div className="signin-input-wrap">
+              <span className="signin-input-icon" aria-hidden>🔒</span>
               <input
                 id="password"
-                type="password"
-                className="input"
-                placeholder="Entrez votre mot de passe"
+                type={showPassword ? "text" : "password"}
+                className="signin-input"
+                placeholder="Votre mot de passe"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
+                aria-invalid={!!passwordError}
+                aria-describedby="password-error"
                 required
               />
               <button
                 type="button"
-                className="password-toggle"
-                onClick={() => {
-                  const input = document.getElementById("password")
-                  input.type = input.type === "password" ? "text" : "password"
-                }}
+                className="signin-toggle"
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={0}
               >
-                👁
+                {showPassword ? "🙈" : "👁"}
               </button>
             </div>
+            <div className="signin-error" id="password-error">{passwordError}</div>
+            <div className="signin-forgot">
+              <a href="#mot-de-passe-oublie" onClick={e => {e.preventDefault(); setShowForgotMsg(true)}}>
+                Mot de passe oublié ?
+              </a>
           </div>
-
-          <div className="checkbox-container">
-            <input
-              id="remember"
-              type="checkbox"
-              className="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <label htmlFor="remember" className="checkbox-label">
-              Se souvenir de moi
-            </label>
           </div>
-
-          <button type="submit" className="button" disabled={isLoading}>
+          <button type="submit" className="signin-btn" disabled={isLoading} aria-busy={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}
           </button>
-        </form>
-
-        <div className="help-link">
-          Besoin d'aide ? <a href="#support">Contacter le support IT</a>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="footer">
-        © 2025 DXC Technology. Tous droits réservés.
-        <br />
+      </form>
+      <div className="signin-footer">
+        © 2025 DXC Technology. Tous droits réservés.<br />
         Accès sécurisé - Environnement professionnel
       </div>
     </div>
@@ -422,3 +347,4 @@ const SignIn = () => {
 }
 
 export default SignIn
+

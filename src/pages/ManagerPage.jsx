@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import styled, { css } from "styled-components"
 import api from "../api"
+import logoImage from "../shared-theme/logo-test-case.png"
 import {
   AlertTriangle,
   Users,
@@ -38,12 +39,24 @@ const HeaderContainer = styled.div`
   height: 4rem;
 `
 
-const Logo = styled.h1`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #10b981;
-  margin: 0;
-  letter-spacing: -0.025em;
+const Logo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+
+  &:hover {
+    background: rgba(90, 32, 155, 0.05);
+    transform: translateY(-1px);
+  }
+
+  img {
+    height: 2rem;
+    width: auto;
+  }
 `
 
 const NavContainer = styled.nav`
@@ -62,12 +75,12 @@ const NavButton = styled.button`
   transition: all 0.2s ease;
   
   /* Dynamic styling based on props */
-  background-color: ${(props) => (props.active ? "#10b981" : "transparent")};
+  background-color: ${(props) => (props.active ? "#5a209b" : "transparent")};
   color: ${(props) => (props.active ? "white" : "#6b7280")};
 
   &:hover {
-    background-color: ${(props) => (props.active ? "#059669" : "#f3f4f6")};
-    color: ${(props) => (props.active ? "white" : "#1f2937")};
+    background-color: ${(props) => (props.active ? "#4c1d87" : "#f3f4f6")};
+    color: ${(props) => (props.active ? "white" : "#5a209b")};
   }
 `
 
@@ -196,11 +209,11 @@ const Button = styled.button`
     switch (props.variant) {
       case "primary":
         return css`
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #5a209b 0%, #7c3aed 100%);
           color: white;
           &:hover { 
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(90, 32, 155, 0.4);
           }
           &:disabled { opacity: 0.5; cursor: not-allowed; }
         `
@@ -221,7 +234,7 @@ const Button = styled.button`
           backdrop-filter: blur(10px);
           &:hover { 
             background: rgba(255, 255, 255, 0.2);
-            color: #1f2937;
+            color: #5a209b;
             transform: translateY(-2px);
           }
         `
@@ -242,7 +255,7 @@ const Button = styled.button`
     props.glow &&
     css`
     &:hover {
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+      box-shadow: 0 0 20px rgba(90, 32, 155, 0.6);
     }
   `}
 `
@@ -261,7 +274,7 @@ const TableRow = styled.tr`
   transition: all 0.2s ease;
   
   &:hover {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(90, 32, 155, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
     transform: scale(1.01);
   }
 `
@@ -294,9 +307,9 @@ const Badge = styled.span`
     switch (props.variant) {
       case "primary":
         return css`
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
-          color: #10b981;
-          border: 1px solid rgba(16, 185, 129, 0.3);
+          background: linear-gradient(135deg, rgba(90, 32, 155, 0.2) 0%, rgba(90, 32, 155, 0.1) 100%);
+          color: #5a209b;
+          border: 1px solid rgba(90, 32, 155, 0.3);
         `
       case "outline":
         return css`
@@ -356,7 +369,7 @@ const ModalTitle = styled.h3`
   font-weight: 600;
   margin-bottom: 1.5rem;
   color: #1f2937;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a209b 0%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -388,8 +401,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #5a209b;
+    box-shadow: 0 0 0 3px rgba(90, 32, 155, 0.1);
     background: rgba(255, 255, 255, 1);
   }
 `
@@ -417,7 +430,7 @@ const LoadingSpinner = styled.div`
   width: 3rem;
   border-radius: 50%;
   border: 3px solid #f3f4f6;
-  border-top-color: #10b981;
+  border-top-color: #5a209b;
   animation: spin 1s linear infinite;
 
   @keyframes spin {
@@ -499,10 +512,16 @@ export default function ManagerPage() {
   // User form states
   const [showUserForm, setShowUserForm] = useState(false)
   const [newUser, setNewUser] = useState({ username: "", password: "" })
+  const [userFormError, setUserFormError] = useState("")
 
   // Edit user form states
   const [showEditForm, setShowEditForm] = useState(false)
   const [editUser, setEditUser] = useState(null)
+
+  // Confirmation modal states
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
+  const [confirmMessage, setConfirmMessage] = useState("")
 
   useEffect(() => {
     fetchData()
@@ -541,7 +560,16 @@ export default function ManagerPage() {
     }
   }
 
+  // Email validation regex
+  // Regex stricte pour email (lettres, chiffres, points, tirets, etc. et domaine correct)
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
   const handleCreateUser = async () => {
+    setUserFormError("")
+    if (!emailRegex.test(newUser.username)) {
+      setUserFormError("Veuillez saisir un email valide.")
+      return
+    }
     try {
       const response = await api.post("/manager/users", newUser)
       setUsers([...users, response.data.user])
@@ -566,30 +594,41 @@ export default function ManagerPage() {
     }
   }
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
+  // Confirmation modale pour suppression utilisateur
+  const handleDeleteUser = (userId) => {
+    setConfirmMessage("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")
+    setShowConfirmModal(true)
+    setConfirmAction(() => async () => {
       try {
         await api.delete(`/manager/users/${userId}`)
         setUsers(users.filter((user) => user._id !== userId))
       } catch (error) {
         setError(error.response?.data?.error || "Échec de la suppression de l'utilisateur")
+      } finally {
+        setShowConfirmModal(false)
+        setConfirmAction(null)
       }
-    }
+    })
   }
 
-  const handleDeleteProject = async (projectId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce projet ?")) {
+  // Confirmation modale pour suppression projet
+  const handleDeleteProject = (projectId) => {
+    setConfirmMessage("Êtes-vous sûr de vouloir supprimer ce projet ?")
+    setShowConfirmModal(true)
+    setConfirmAction(() => async () => {
       try {
         await api.delete(`/projects/${projectId}`)
         setProjects(projects.filter((project) => project.id !== projectId))
-        // If we're viewing this project, go back to projects list
         if (selectedProject && selectedProject.id === projectId) {
           setSelectedProject(null)
         }
       } catch (error) {
         setError(error.response?.data?.error || "Échec de la suppression du projet")
+      } finally {
+        setShowConfirmModal(false)
+        setConfirmAction(null)
       }
-    }
+    })
   }
 
   const handleViewProjectDetails = async (projectId) => {
@@ -617,6 +656,10 @@ export default function ManagerPage() {
     }
   }
 
+  const handleLogoClick = () => {
+    navigate("/dashboard")
+  }
+
   const renderDashboard = () => {
     if (!dashboardData) return null
 
@@ -629,29 +672,29 @@ export default function ManagerPage() {
         title: "Total des projets",
         value: stats.total_projects || 0,
         icon: FolderOpen,
-        color: "#10b981",
-        bgColor: "linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1))",
+        color: "#5a209b",
+        bgColor: "linear-gradient(135deg, rgba(90, 32, 155, 0.2), rgba(90, 32, 155, 0.1))",
       },
       {
         title: "Utilisateurs assignés",
         value: stats.total_assigned_users || 0,
         icon: UserCheck,
-        color: "#3b82f6",
-        bgColor: "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+        color: "#7c3aed",
+        bgColor: "linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.1))",
       },
       {
         title: "Total des exigences",
         value: stats.total_requirements || 0,
         icon: BarChart3,
-        color: "#8b5cf6",
-        bgColor: "linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1))",
+        color: "#a855f7",
+        bgColor: "linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.1))",
       },
       {
         title: "Collaborations",
         value: stats.total_collaborations || 0,
         icon: Users,
-        color: "#f59e0b",
-        bgColor: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1))",
+        color: "#c084fc",
+        bgColor: "linear-gradient(135deg, rgba(192, 132, 252, 0.2), rgba(192, 132, 252, 0.1))",
       },
     ]
 
@@ -1004,18 +1047,14 @@ export default function ManagerPage() {
     <Container>
       <Header>
         <HeaderContainer>
-          <Logo>Panneau Manager - Générateur de cas de test IA</Logo>
+          <Logo onClick={handleLogoClick}>
+            <img src={logoImage} alt="Logo DXC" />
+          </Logo>
           <NavContainer>
-            <NavButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>
-              Tableau de bord
-            </NavButton>
-            <NavButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>
-              Utilisateurs
-            </NavButton>
-            <NavButton active={activeTab === "projects"} onClick={() => setActiveTab("projects")}>
-              Projets
-            </NavButton>
-            <NavButton onClick={() => navigate("/dashboard")}>Tableau de bord principal</NavButton>
+            <NavButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>Tableau de bord</NavButton>
+            <NavButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>Utilisateurs</NavButton>
+            <NavButton active={activeTab === "projects"} onClick={() => setActiveTab("projects")}>Projets</NavButton>
+            <NavButton onClick={() => navigate("/dashboard")}>Gestion projet</NavButton>
             <NavButton onClick={handleLogout}>Déconnexion</NavButton>
           </NavContainer>
         </HeaderContainer>
@@ -1055,6 +1094,7 @@ export default function ManagerPage() {
                 onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                 placeholder="Entrez le nom d'utilisateur/email"
               />
+              {userFormError && <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 4 }}>{userFormError}</div>}
             </FormGroup>
             <FormGroup>
               <Label htmlFor="password">Mot de passe</Label>
@@ -1073,6 +1113,20 @@ export default function ManagerPage() {
               <Button variant="primary" onClick={handleCreateUser} disabled={!newUser.username || !newUser.password}>
                 Créer l'utilisateur
               </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <Modal onClick={() => setShowConfirmModal(false)}>
+          <ModalContent onClick={e => e.stopPropagation()}>
+            <ModalTitle>Confirmation</ModalTitle>
+            <p style={{ marginBottom: 24 }}>{confirmMessage}</p>
+            <ModalFooter>
+              <Button variant="outline" onClick={() => setShowConfirmModal(false)}>Annuler</Button>
+              <Button variant="danger" onClick={() => { if (confirmAction) confirmAction() }}>Confirmer</Button>
             </ModalFooter>
           </ModalContent>
         </Modal>

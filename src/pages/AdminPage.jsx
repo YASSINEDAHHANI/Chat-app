@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import styled, { css } from "styled-components"
 import api from "../api"
-import { AlertTriangle, Users, ArrowLeft, Plus, Edit, Trash2, Eye, BarChart3, FolderOpen, UserCheck, ChevronDown, ChevronUp, FileText } from 'lucide-react'
+import { AlertTriangle, Users, ArrowLeft, Plus, Edit, Trash2, Eye, BarChart3, FolderOpen, UserCheck, ChevronDown, ChevronUp, FileText, Upload, File, Download, X } from 'lucide-react'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -92,6 +92,103 @@ const PageSubtitle = styled.p`
   color: #6b7280;
   margin-bottom: 2rem;
   font-size: 1rem;
+`
+
+// ✅ File upload specific styles
+const UploadArea = styled.div`
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  background-color: ${props => props.isDragOver ? "#f0f9ff" : "#fafbff"};
+  border-color: ${props => props.isDragOver ? "#3b82f6" : "#d1d5db"};
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  &:hover {
+    border-color: #3b82f6;
+    background-color: #f0f9ff;
+  }
+`
+
+const FileInput = styled.input`
+  display: none;
+`
+
+const FileGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+`
+
+const FileCard = styled.div`
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+`
+
+const FileHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+`
+
+const FileIcon = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  background: ${props => props.color || "rgba(59, 130, 246, 0.1)"};
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const FileName = styled.h4`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  word-break: break-all;
+  line-height: 1.4;
+`
+
+const FileInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+`
+
+const FileActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin: 1rem 0;
+`
+
+const ProgressFill = styled.div`
+  height: 100%;
+  background-color: #3b82f6;
+  width: ${props => props.progress}%;
+  transition: width 0.3s ease;
 `
 
 const StatsGrid = styled.div`
@@ -618,6 +715,11 @@ export default function AdminPage() {
   const [showEditForm, setShowEditForm] = useState(false)
   const [editUser, setEditUser] = useState(null)
 
+  // ✅ NEW: File management states
+  const [files, setFiles] = useState([])
+  const [uploadProgress, setUploadProgress] = useState({})
+  const [isDragOver, setIsDragOver] = useState(false)
+
   useEffect(() => {
     fetchData()
   }, [activeTab])
@@ -652,6 +754,10 @@ export default function AdminPage() {
         console.warn("No projects data in response")
         setProjects([])
       }
+    } else if (activeTab === "files") {
+      // ✅ NEW: Fetch files from MinIO
+      console.log("Fetching files data...")
+      await fetchFiles()
     }
   } catch (error) {
     console.error("Error fetching data:", error)
@@ -678,6 +784,409 @@ export default function AdminPage() {
     setIsLoading(false)
   }
 }
+
+  // ✅ NEW: File management functions
+  const fetchFiles = async () => {
+    try {
+      const response = await api.get("/admin/list_documents")
+      setFiles(response.data.files || [])
+    } catch (error) {
+      console.error("Error fetching files:", error)
+      setError("Failed to fetch files from MinIO")
+    }
+  }
+
+  const handleFileUpload = async (selectedFiles) => {
+    if (!selectedFiles || selectedFiles.length === 0) return
+
+    for (const file of selectedFiles) {
+      const fileId = Date.now() + Math.random()
+      
+      // Initialize progress
+      setUploadProgress(prev => ({
+        ...prev,
+        [fileId]: { name: file.name, progress: 0, status: 'uploading' }
+      }))
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await api.post("/admin/upload_document", formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            )
+            setUploadProgress(prev => ({
+              ...prev,
+              [fileId]: { 
+                ...prev[fileId], 
+                progress: percentCompleted 
+              }
+            }))
+          }
+        })
+
+        // Mark as completed
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileId]: { 
+            ...prev[fileId], 
+            progress: 100, 
+            status: 'completed' 
+          }
+        }))
+
+        // Refresh files list
+        await fetchFiles()
+
+        // Remove from progress after a delay
+        setTimeout(() => {
+          setUploadProgress(prev => {
+            const newProgress = { ...prev }
+            delete newProgress[fileId]
+            return newProgress
+          })
+        }, 2000)
+
+      } catch (error) {
+        console.error("Error uploading file:", error)
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileId]: { 
+            ...prev[fileId], 
+            status: 'error',
+            error: error.response?.data?.error || 'Upload failed'
+          }
+        }))
+      }
+    }
+  }
+
+  const handleFileDelete = async (fileName) => {
+    if (window.confirm(`Are you sure you want to delete ${fileName}?`)) {
+      try {
+        await api.delete("/admin/delete_document", {
+          data: { filename: fileName }
+        })
+        await fetchFiles()
+      } catch (error) {
+        console.error("Error deleting file:", error)
+        setError("Failed to delete file")
+      }
+    }
+  }
+
+const handleFileDownload = async (fileName) => {
+  try {
+    console.log(`Starting download for file: ${fileName}`)
+    
+    const response = await api.get(`/admin/download_document/${encodeURIComponent(fileName)}`, {
+      responseType: 'blob',
+      timeout: 30000, // 30 second timeout
+    })
+    
+    // Check if response is valid
+    if (!response.data || response.data.size === 0) {
+      throw new Error('Received empty file from server')
+    }
+    
+    console.log(`Received file, size: ${response.data.size} bytes`)
+    
+    // Create blob with proper content type
+    const blob = new Blob([response.data], {
+      type: response.headers['content-type'] || 'application/octet-stream'
+    })
+    
+    // Sanitize filename
+    const sanitizedFileName = fileName.replace(/[<>:"/\\|?*]/g, '_')
+    
+    // Create temporary URL
+    const url = window.URL.createObjectURL(blob)
+    
+    // Create temporary link element
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', sanitizedFileName)
+    link.style.display = 'none'
+    
+    // Append to body, click and clean up
+    document.body.appendChild(link)
+    link.click()
+    
+    // Clean up with slight delay to ensure download starts
+    setTimeout(() => {
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    }, 100)
+    
+    console.log(`File download initiated successfully: ${fileName}`)
+    
+  } catch (error) {
+    console.error("Error downloading file:", error)
+    
+    // Show user-friendly error message
+    let errorMessage = `Failed to download file: ${fileName}`
+    
+    if (error.response?.status === 403) {
+      errorMessage = "Access denied. Please check your permissions."
+    } else if (error.response?.status === 404) {
+      errorMessage = "File not found on server."
+    } else if (error.response?.status === 500) {
+      errorMessage = "Server error occurred while downloading the file."
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = "Download timeout. Please try again."
+    } else if (error.message.includes('empty file')) {
+      errorMessage = "Downloaded file is empty. Please try again."
+    }
+    
+    setError(errorMessage)
+  }
+}
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    handleFileUpload(files)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split('.').pop().toLowerCase()
+    const iconProps = { size: 20 }
+
+    switch (extension) {
+      case 'pdf':
+        return <File {...iconProps} color="#dc2626" />
+      case 'doc':
+      case 'docx':
+        return <File {...iconProps} color="#2563eb" />
+      case 'txt':
+        return <FileText {...iconProps} color="#6b7280" />
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return <File {...iconProps} color="#059669" />
+      default:
+        return <File {...iconProps} color="#6b7280" />
+    }
+  }
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // ✅ NEW: Render files management tab
+  const renderFiles = () => {
+    return (
+      <AnimatedDiv>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+          <div>
+            <PageTitle>Gestion des Fichiers MinIO</PageTitle>
+            <PageSubtitle>Gérer les fichiers stockés dans le système de stockage MinIO</PageSubtitle>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => fetchFiles()}
+            disabled={isLoading}
+          >
+            {isLoading ? "Chargement..." : "Actualiser"}
+          </Button>
+        </div>
+
+        {/* Upload Area */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Upload size={20} />
+              Télécharger des Fichiers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UploadArea
+              isDragOver={isDragOver}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => document.getElementById('file-input').click()}
+            >
+              <Upload size={48} color="#6b7280" style={{ marginBottom: "1rem" }} />
+              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                Glissez-déposez vos fichiers ici
+              </h3>
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
+                ou cliquez pour sélectionner des fichiers
+              </p>
+              <Button variant="primary" size="sm">
+                Choisir des Fichiers
+              </Button>
+            </UploadArea>
+            <FileInput
+              id="file-input"
+              type="file"
+              multiple
+              onChange={(e) => handleFileUpload(Array.from(e.target.files))}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Upload Progress */}
+        {Object.keys(uploadProgress).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Progression du Téléchargement</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Object.entries(uploadProgress).map(([fileId, fileProgress]) => (
+                <div key={fileId} style={{ marginBottom: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <span style={{ fontSize: "0.875rem", fontWeight: "500" }}>{fileProgress.name}</span>
+                    <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      {fileProgress.status === 'completed' ? '✅ Terminé' : 
+                       fileProgress.status === 'error' ? '❌ Erreur' : 
+                       `${fileProgress.progress}%`}
+                    </span>
+                  </div>
+                  <ProgressBar>
+                    <ProgressFill progress={fileProgress.progress} />
+                  </ProgressBar>
+                  {fileProgress.error && (
+                    <p style={{ fontSize: "0.75rem", color: "#ef4444", marginTop: "0.25rem" }}>
+                      {fileProgress.error}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Files List */}
+        <Card>
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <CardTitle>Fichiers Stockés</CardTitle>
+              {files.length > 0 && (
+                <Badge variant="outline">
+                  {files.length} fichier{files.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <LoadingContainer>
+                <LoadingSpinner />
+                <p style={{ color: "#6b7280", fontWeight: 500 }}>Chargement des fichiers...</p>
+              </LoadingContainer>
+            ) : files.length === 0 ? (
+              <EmptyState>
+                <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                  Aucun Fichier Trouvé
+                </h3>
+                <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                  Aucun fichier n'est actuellement stocké dans MinIO. Téléchargez vos premiers fichiers pour commencer.
+                </p>
+              </EmptyState>
+            ) : (
+              <FileGrid>
+                {files.map((file) => (
+                  <FileCard key={file.filename}>
+                    <FileHeader>
+                      <FileIcon color="rgba(59, 130, 246, 0.1)">
+                        {getFileIcon(file.filename)}
+                      </FileIcon>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <FileName>{file.filename}</FileName>
+                      </div>
+                    </FileHeader>
+                    <FileInfo>
+                      <span>{formatFileSize(file.size)}</span>
+                      <span>{new Date(file.last_modified).toLocaleDateString()}</span>
+                    </FileInfo>
+                    <FileActions>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleFileDownload(file.filename)}
+                        title="Télécharger le fichier"
+                      >
+                        <Download size={14} />
+                      </Button>
+                      <Button 
+                        variant="danger" 
+                        size="sm" 
+                        onClick={() => handleFileDelete(file.filename)}
+                        title="Supprimer le fichier"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </FileActions>
+                  </FileCard>
+                ))}
+              </FileGrid>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Storage Statistics */}
+        {files.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Statistiques de Stockage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#3b82f6" }}>
+                    {files.length}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Fichiers Total
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#059669" }}>
+                    {formatFileSize(files.reduce((total, file) => total + file.size, 0))}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Espace Utilisé
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#f59e0b" }}>
+                    {formatFileSize(files.reduce((total, file) => total + file.size, 0) / files.length || 0)}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Taille Moyenne
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </AnimatedDiv>
+    )
+  }
 
   const handleCreateUser = async () => {
     try {
@@ -926,11 +1435,15 @@ export default function AdminPage() {
     return colorMap[priority] || "#6b7280"
   }
 
-  const renderDashboard = () => {
+const renderDashboard = () => {
     if (!dashboardData) return null
 
     const usersStats = dashboardData.users_stats || { total: 0, by_role: {} }
     const projectsStats = dashboardData.projects_stats || { total: 0, by_user: [] }
+    const documentStats = dashboardData.document_stats || { total_documents: 0, total_size_mb: 0, minio_available: false }
+    const ragStats = dashboardData.rag_stats || { rag_available: false }
+    
+    // Create mock recent data if not available from backend
     const recentUsers = dashboardData.recent_users || []
     const recentProjects = dashboardData.recent_projects || []
 
@@ -944,14 +1457,14 @@ export default function AdminPage() {
       },
       { 
         title: "Utilisateurs Admin", 
-        value: usersStats.by_role.admin || 0, 
+        value: usersStats.by_role?.admin || 0, 
         icon: UserCheck, 
         color: "#8b5cf6",
         bgColor: "rgba(139, 92, 246, 0.1)"
       },
       { 
-        title: "Utilisateurs Réguliers", 
-        value: usersStats.by_role.user || 0, 
+        title: "Utilisateurs Managers", 
+        value: usersStats.by_role?.manager || 0, 
         icon: Users, 
         color: "#10b981",
         bgColor: "rgba(16, 185, 129, 0.1)"
@@ -1022,7 +1535,12 @@ export default function AdminPage() {
                 ) : (
                   <EmptyState>
                     <Users size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                    <p>Aucun utilisateur récent</p>
+                    <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                      Aucun utilisateur récent disponible
+                    </p>
+                    <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                      Les utilisateurs récents s'afficheront ici
+                    </p>
                   </EmptyState>
                 )}
               </CardContent>
@@ -1060,7 +1578,12 @@ export default function AdminPage() {
                 ) : (
                   <EmptyState>
                     <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                    <p>Aucun projet récent</p>
+                    <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                      Aucun projet récent disponible
+                    </p>
+                    <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                      Les projets récents s'afficheront ici
+                    </p>
                   </EmptyState>
                 )}
               </CardContent>
@@ -1068,40 +1591,100 @@ export default function AdminPage() {
           </AnimatedDiv>
         </GridLayout>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Principaux Contributeurs de Projets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <tr>
-                  <TableHeaderCell>Nom d'utilisateur</TableHeaderCell>
-                  <TableHeaderCell>Nombre de Projets</TableHeaderCell>
-                </tr>
-              </TableHeader>
-              <tbody>
-                {projectsStats.by_user && projectsStats.by_user.length > 0 ? (
-                  projectsStats.by_user.map((item) => (
-                    <TableRow key={item._id}>
-                      <TableCell style={{ fontWeight: 500 }}>{item._id}</TableCell>
-                      <TableCell>{item.count}</TableCell>
+        {/* System Stats Card */}
+        <AnimatedDiv delay={600}>
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <BarChart3 size={20} />
+                Statistiques Système
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#3b82f6" }}>
+                    {documentStats.total_documents || 0}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Documents MinIO
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#059669" }}>
+                    {documentStats.total_size_mb || 0} MB
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Espace Utilisé
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: documentStats.minio_available ? "#10b981" : "#ef4444" }}>
+                    {documentStats.minio_available ? "✅" : "❌"}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    MinIO Status
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.5rem" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "700", color: ragStats.rag_available ? "#10b981" : "#6b7280" }}>
+                    {ragStats.rag_available ? "Actif" : "Inactif"}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Système RAG
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </AnimatedDiv>
+
+        {/* Project Contributors Table */}
+        <AnimatedDiv delay={700}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Principaux Contributeurs de Projets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <tr>
+                    <TableHeaderCell>Nom d'utilisateur</TableHeaderCell>
+                    <TableHeaderCell>Nombre de Projets</TableHeaderCell>
+                  </tr>
+                </TableHeader>
+                <tbody>
+                  {projectsStats.by_user && projectsStats.by_user.length > 0 ? (
+                    projectsStats.by_user.map((item) => (
+                      <TableRow key={item._id}>
+                        <TableCell style={{ fontWeight: 500 }}>{item._id}</TableCell>
+                        <TableCell>{item.count}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
+                        <EmptyState>
+                          <BarChart3 size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                          <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            Aucune donnée de contributeurs disponible
+                          </p>
+                          <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                            Les statistiques des contributeurs s'afficheront ici
+                          </p>
+                        </EmptyState>
+                      </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} style={{ textAlign: "center", color: "#6b7280" }}>
-                      Aucune donnée de contributeurs de projets disponible
-                    </TableCell>
-                  </TableRow>
-                )}
-              </tbody>
-            </Table>
-          </CardContent>
-        </Card>
+                  )}
+                </tbody>
+              </Table>
+            </CardContent>
+          </Card>
+        </AnimatedDiv>
       </AnimatedDiv>
     )
   }
+  // Add these missing functions after renderDashboard():
 
   const renderUsers = () => {
     if (selectedUser) {
@@ -1255,403 +1838,399 @@ export default function AdminPage() {
     )
   }
 
- const renderProjects = () => {
-  if (selectedProject) {
-    return (
-      <AnimatedDiv>
-        <BackButton onClick={() => setSelectedProject(null)}>
-          <ArrowLeft size={16} />
-          Retour à la liste des projets
-        </BackButton>
+  const renderProjects = () => {
+    if (selectedProject) {
+      return (
+        <AnimatedDiv>
+          <BackButton onClick={() => setSelectedProject(null)}>
+            <ArrowLeft size={16} />
+            Retour à la liste des projets
+          </BackButton>
 
-        <PageTitle>Projet: {selectedProject.name}</PageTitle>
-        <PageSubtitle>
-          Créé par {selectedProject.user} le {new Date(selectedProject.created_at).toLocaleDateString()}
-        </PageSubtitle>
+          <PageTitle>Projet: {selectedProject.name}</PageTitle>
+          <PageSubtitle>
+            Créé par {selectedProject.user} le {new Date(selectedProject.created_at).toLocaleDateString()}
+          </PageSubtitle>
 
-        <ProjectDetailContainer>
-          <ProjectSidebar>
-            <ProjectInfoCard>
-              <CardHeader>
-                <CardTitle>Informations du Projet</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Propriétaire</ProjectInfoLabel>
-                  <ProjectInfoValue>{selectedProject.user}</ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Créé</ProjectInfoLabel>
-                  <ProjectInfoValue>
-                    {new Date(selectedProject.created_at).toLocaleDateString()}
-                  </ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Dernière mise à jour</ProjectInfoLabel>
-                  <ProjectInfoValue>
-                    {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
-                  </ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Exigences</ProjectInfoLabel>
-                  <ProjectInfoValue>{selectedProject.requirements?.length || 0}</ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Collaborateurs</ProjectInfoLabel>
-                  <ProjectInfoValue>{selectedProject.collaborator_details?.length || 0}</ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Langue</ProjectInfoLabel>
-                  <ProjectInfoValue>{selectedProject.language === "fr" ? "Français" : selectedProject.language === "en" ? "Anglais" : "Non spécifiée"}</ProjectInfoValue>
-                </ProjectInfoItem>
-                <ProjectInfoItem>
-                  <ProjectInfoLabel>Modèle IA</ProjectInfoLabel>
-                  <ProjectInfoValue>{selectedProject.ai_model || "Par défaut"}</ProjectInfoValue>
-                </ProjectInfoItem>
-
-                <div style={{ marginTop: "1.25rem" }}>
-                  <Button
-                    variant="danger"
-                    style={{ width: "100%" }}
-                    onClick={() => {
-                      handleDeleteProject(selectedProject.id)
-                      setSelectedProject(null)
-                    }}
-                    disabled={isLoading}
-                  >
-                    <Trash2 size={16} />
-                    {isLoading ? "Suppression..." : "Supprimer le Projet"}
-                  </Button>
-                </div>
-              </CardContent>
-            </ProjectInfoCard>
-
-            {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
+          <ProjectDetailContainer>
+            <ProjectSidebar>
               <ProjectInfoCard>
                 <CardHeader>
-                  <CardTitle>Collaborateurs ({selectedProject.collaborator_details.length})</CardTitle>
+                  <CardTitle>Informations du Projet</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {selectedProject.collaborator_details.map((collab) => (
-                    <div key={collab._id} style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      padding: "0.75rem 0", 
-                      borderBottom: "1px solid #f3f4f6" 
-                    }}>
-                      <div style={{
-                        width: "2rem",
-                        height: "2rem", 
-                        borderRadius: "50%",
-                        backgroundColor: "#e5e7eb",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: "0.75rem",
-                        fontSize: "0.875rem",
-                        fontWeight: "600",
-                        color: "#4b5563"
-                      }}>
-                        {collab.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#1f2937" }}>
-                          {collab.username}
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                          {collab.email}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                        {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
-                      </div>
-                    </div>
-                  ))}
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Propriétaire</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.user}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Créé</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {new Date(selectedProject.created_at).toLocaleDateString()}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Dernière mise à jour</ProjectInfoLabel>
+                    <ProjectInfoValue>
+                      {selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleDateString() : "N/A"}
+                    </ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Exigences</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.requirements?.length || 0}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Collaborateurs</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.collaborator_details?.length || 0}</ProjectInfoValue>
+                  </ProjectInfoItem>
+                  <ProjectInfoItem>
+                    <ProjectInfoLabel>Langue</ProjectInfoLabel>
+                    <ProjectInfoValue>{selectedProject.language === "fr" ? "Français" : selectedProject.language === "en" ? "Anglais" : "Non spécifiée"}</ProjectInfoValue>
+                  </ProjectInfoItem>
+
+                  <div style={{ marginTop: "1.25rem" }}>
+                    <Button
+                      variant="danger"
+                      style={{ width: "100%" }}
+                      onClick={() => {
+                        handleDeleteProject(selectedProject.id)
+                        setSelectedProject(null)
+                      }}
+                      disabled={isLoading}
+                    >
+                      <Trash2 size={16} />
+                      {isLoading ? "Suppression..." : "Supprimer le Projet"}
+                    </Button>
+                  </div>
                 </CardContent>
               </ProjectInfoCard>
-            )}
-          </ProjectSidebar>
 
-          <ProjectContent>
-            <Card>
-              <CardHeader>
-                <CardTitle>Contexte du Projet</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div style={{
-                  whiteSpace: "pre-wrap",
-                  padding: "1rem",
-                  backgroundColor: "#f9fafb",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #e5e7eb",
-                  fontSize: "0.875rem",
-                  lineHeight: "1.5",
-                  color: "#4b5563",
-                }}>
-                  {selectedProject.context || "Aucun contexte fourni pour ce projet."}
-                </div>
-              </CardContent>
-            </Card>
+              {selectedProject.collaborator_details && selectedProject.collaborator_details.length > 0 && (
+                <ProjectInfoCard>
+                  <CardHeader>
+                    <CardTitle>Collaborateurs ({selectedProject.collaborator_details.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedProject.collaborator_details.map((collab) => (
+                      <div key={collab._id} style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        padding: "0.75rem 0", 
+                        borderBottom: "1px solid #f3f4f6" 
+                      }}>
+                        <div style={{
+                          width: "2rem",
+                          height: "2rem", 
+                          borderRadius: "50%",
+                          backgroundColor: "#e5e7eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: "0.75rem",
+                          fontSize: "0.875rem",
+                          fontWeight: "600",
+                          color: "#4b5563"
+                        }}>
+                          {collab.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#1f2937" }}>
+                            {collab.username}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            {collab.email}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                          {collab.added_at ? new Date(collab.added_at).toLocaleDateString() : "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </ProjectInfoCard>
+              )}
+            </ProjectSidebar>
 
-            {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
+            <ProjectContent>
               <Card>
                 <CardHeader>
-                  <CardTitle>Exigences ({selectedProject.requirements.length})</CardTitle>
+                  <CardTitle>Contexte du Projet</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {selectedProject.requirements.map((req) => (
-                    <RequirementCard key={req.id}>
-                      <RequirementHeader
-                        onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
-                      >
-                        <RequirementTitle>{req.title}</RequirementTitle>
-                        <RequirementBadges>
-                          <Badge 
-                            style={{
-                              backgroundColor: getCategoryColor(req.category),
-                              color: getCategoryTextColor(req.category),
-                              border: "none"
-                            }}
-                          >
-                            {getReadableCategory(req.category)}
-                          </Badge>
-                          <Badge 
-                            style={{
-                              backgroundColor: getPriorityColor(req.priority),
-                              color: getPriorityTextColor(req.priority),
-                              border: "none"
-                            }}
-                          >
-                            {getReadablePriority(req.priority)}
-                          </Badge>
-                          <Button variant="outline" size="sm">
-                            {expandedRequirement === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </Button>
-                        </RequirementBadges>
-                      </RequirementHeader>
-                      {expandedRequirement === req.id && (
-                        <RequirementContent>
-                          <p>{req.description}</p>
-                          <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
-                            <Badge style={{
-                              backgroundColor: "rgba(107, 114, 128, 0.1)",
-                              color: "#6b7280",
-                              border: "none"
-                            }}>
-                              Statut: {getReadableStatus(req.status)}
+                  <div style={{
+                    whiteSpace: "pre-wrap",
+                    padding: "1rem",
+                    backgroundColor: "#f9fafb",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #e5e7eb",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.5",
+                    color: "#4b5563",
+                  }}>
+                    {selectedProject.context || "Aucun contexte fourni pour ce projet."}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {selectedProject.requirements && selectedProject.requirements.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Exigences ({selectedProject.requirements.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedProject.requirements.map((req) => (
+                      <RequirementCard key={req.id}>
+                        <RequirementHeader
+                          onClick={() => setExpandedRequirement(expandedRequirement === req.id ? null : req.id)}
+                        >
+                          <RequirementTitle>{req.title}</RequirementTitle>
+                          <RequirementBadges>
+                            <Badge 
+                              style={{
+                                backgroundColor: getCategoryColor(req.category),
+                                color: getCategoryTextColor(req.category),
+                                border: "none"
+                              }}
+                            >
+                              {getReadableCategory(req.category)}
                             </Badge>
-                            {req.priority_auto_generated && (
+                            <Badge 
+                              style={{
+                                backgroundColor: getPriorityColor(req.priority),
+                                color: getPriorityTextColor(req.priority),
+                                border: "none"
+                              }}
+                            >
+                              {getReadablePriority(req.priority)}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              {expandedRequirement === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </Button>
+                          </RequirementBadges>
+                        </RequirementHeader>
+                        {expandedRequirement === req.id && (
+                          <RequirementContent>
+                            <p>{req.description}</p>
+                            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
                               <Badge style={{
                                 backgroundColor: "rgba(107, 114, 128, 0.1)",
                                 color: "#6b7280",
                                 border: "none"
                               }}>
-                                Priorité auto-générée
+                                Statut: {getReadableStatus(req.status)}
                               </Badge>
-                            )}
-                          </div>
-                        </RequirementContent>
-                      )}
-                    </RequirementCard>
-                  ))}
-                </CardContent>
-              </Card>
+                              {req.priority_auto_generated && (
+                                <Badge style={{
+                                  backgroundColor: "rgba(107, 114, 128, 0.1)",
+                                  color: "#6b7280",
+                                  border: "none"
+                                }}>
+                                  Priorité auto-générée
+                                </Badge>
+                              )}
+                            </div>
+                          </RequirementContent>
+                        )}
+                      </RequirementCard>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent>
+                    <EmptyState>
+                      <FileText size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                      <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                        Aucune Exigence Trouvée
+                      </h3>
+                      <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                        Ce projet n'a pas encore d'exigences. Les exigences sont utilisées pour définir les fonctionnalités et caractéristiques du projet.
+                      </p>
+                    </EmptyState>
+                  </CardContent>
+                </Card>
+              )}
+            </ProjectContent>
+          </ProjectDetailContainer>
+        </AnimatedDiv>
+      )
+    }
+
+    return (
+      <AnimatedDiv>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+          <div>
+            <PageTitle>Gestion des Projets</PageTitle>
+            <PageSubtitle>Gérer et surveiller tous les projets du système</PageSubtitle>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={() => fetchData()}
+            disabled={isLoading}
+            style={{ minWidth: "120px" }}
+          >
+            {isLoading ? (
+              <>
+                <LoadingSpinner style={{ 
+                  height: "1rem", 
+                  width: "1rem", 
+                  borderWidth: "2px",
+                  marginRight: "0.5rem" 
+                }} />
+                Chargement...
+              </>
             ) : (
-              <Card>
-                <CardContent>
-                  <EmptyState>
-                    <FileText size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                    <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
-                      Aucune Exigence Trouvée
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
-                      Ce projet n'a pas encore d'exigences. Les exigences sont utilisées pour définir les fonctionnalités et caractéristiques du projet.
-                    </p>
-                  </EmptyState>
-                </CardContent>
-              </Card>
+              "Actualiser"
             )}
-          </ProjectContent>
-        </ProjectDetailContainer>
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <CardTitle>Tous les Projets</CardTitle>
+              {projects.length > 0 && (
+                <Badge variant="outline" style={{ fontSize: "0.875rem" }}>
+                  {projects.length} projet{projects.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <LoadingContainer>
+                <LoadingSpinner />
+                <p style={{ color: "#6b7280", fontWeight: 500 }}>Chargement des projets...</p>
+              </LoadingContainer>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <tr>
+                    <TableHeaderCell>Nom</TableHeaderCell>
+                    <TableHeaderCell>Propriétaire</TableHeaderCell>
+                    <TableHeaderCell>Créé</TableHeaderCell>
+                    <TableHeaderCell>Exigences</TableHeaderCell>
+                    <TableHeaderCell>Collaborateurs</TableHeaderCell>
+                    <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
+                  </tr>
+                </TableHeader>
+                <tbody>
+                  {projects.length === 0 ? (
+                    <tr>
+                      <TableCell colSpan={6}>
+                        <EmptyState>
+                          <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
+                          <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
+                            Aucun Projet Trouvé
+                          </h3>
+                          <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
+                            Il n'y a actuellement aucun projet dans le système. Les projets apparaîtront ici une fois créés.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => fetchData()}
+                            disabled={isLoading}
+                          >
+                            Actualiser la liste
+                          </Button>
+                        </EmptyState>
+                      </TableCell>
+                    </tr>
+                  ) : (
+                    projects.map((project) => {
+                      console.log("Rendering project:", project)
+                      return (
+                        <TableRow key={project._id || project.id}>
+                          <TableCell style={{ fontWeight: 500 }}>
+                            {project.name}
+                            {project.language && (
+                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                                {project.language === "fr" ? "🇫🇷 Français" : project.language === "en" ? "🇬🇧 Anglais" : project.language}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>{project.user}</TableCell>
+                          <TableCell>
+                            <div style={{ fontSize: "0.875rem" }}>
+                              {new Date(project.created_at).toLocaleDateString()}
+                            </div>
+                            {project.updated_at && (
+                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                                Modifié: {new Date(project.updated_at).toLocaleDateString()}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={project.requirements?.length > 0 || project.requirements_count > 0 ? "admin" : "outline"}>
+                              {project.requirements?.length || project.requirements_count || 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={project.collaborator_details?.length > 0 || project.collaborator_count > 0 ? "user" : "outline"}>
+                              {project.collaborator_details?.length || project.collaborator_count || 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell style={{ textAlign: "right" }}>
+                            <ButtonGroup>
+                              <Button 
+                                variant="primary" 
+                                size="sm" 
+                                onClick={() => {
+                                  console.log("Eye button clicked for project:", project)
+                                  handleViewProjectDetails(project.id)
+                                }}
+                                disabled={isLoading}
+                                title="Voir les détails du projet"
+                              >
+                                <Eye size={14} />
+                              </Button>
+                              <Button 
+                                variant="danger" 
+                                size="sm" 
+                                onClick={() => handleDeleteProject(project.id)}
+                                disabled={isLoading}
+                                title="Supprimer le projet"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </ButtonGroup>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </tbody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {projects.length > 0 && (
+          <Card style={{ marginTop: "1rem" }}>
+            <CardContent style={{ padding: "1rem 1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem", color: "#6b7280" }}>
+                <span>Total des projets: <strong style={{ color: "#1f2937" }}>{projects.length}</strong></span>
+                <span>
+                  Total des exigences: <strong style={{ color: "#1f2937" }}>
+                    {projects.reduce((sum, p) => sum + (p.requirements?.length || p.requirements_count || 0), 0)}
+                  </strong>
+                </span>
+                <span>
+                  Total des collaborateurs: <strong style={{ color: "#1f2937" }}>
+                    {projects.reduce((sum, p) => sum + (p.collaborator_details?.length || p.collaborator_count || 0), 0)}
+                  </strong>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </AnimatedDiv>
     )
   }
 
-    return (
-    <AnimatedDiv>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
-        <div>
-          <PageTitle>Gestion des Projets</PageTitle>
-          <PageSubtitle>Gérer et surveiller tous les projets du système</PageSubtitle>
-        </div>
-        
-        {/* Add refresh button */}
-        <Button 
-          variant="outline" 
-          onClick={() => fetchData()}
-          disabled={isLoading}
-          style={{ minWidth: "120px" }}
-        >
-          {isLoading ? (
-            <>
-              <LoadingSpinner style={{ 
-                height: "1rem", 
-                width: "1rem", 
-                borderWidth: "2px",
-                marginRight: "0.5rem" 
-              }} />
-              Chargement...
-            </>
-          ) : (
-            "Actualiser"
-          )}
-        </Button>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <CardTitle>Tous les Projets</CardTitle>
-            {projects.length > 0 && (
-              <Badge variant="outline" style={{ fontSize: "0.875rem" }}>
-                {projects.length} projet{projects.length > 1 ? 's' : ''}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <LoadingContainer>
-              <LoadingSpinner />
-              <p style={{ color: "#6b7280", fontWeight: 500 }}>Chargement des projets...</p>
-            </LoadingContainer>
-          ) : (
-            <Table>
-              <TableHeader>
-                <tr>
-                  <TableHeaderCell>Nom</TableHeaderCell>
-                  <TableHeaderCell>Propriétaire</TableHeaderCell>
-                  <TableHeaderCell>Créé</TableHeaderCell>
-                  <TableHeaderCell>Exigences</TableHeaderCell>
-                  <TableHeaderCell>Collaborateurs</TableHeaderCell>
-                  <TableHeaderCell style={{ textAlign: "right" }}>Actions</TableHeaderCell>
-                </tr>
-              </TableHeader>
-              <tbody>
-                {projects.length === 0 ? (
-                  <tr>
-                    <TableCell colSpan={6}>
-                      <EmptyState>
-                        <FolderOpen size={48} style={{ marginBottom: "1rem", color: "#d1d5db" }} />
-                        <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937", marginBottom: "0.5rem" }}>
-                          Aucun Projet Trouvé
-                        </h3>
-                        <p style={{ fontSize: "0.875rem", color: "#6b7280", maxWidth: "24rem", marginBottom: "1.5rem" }}>
-                          Il n'y a actuellement aucun projet dans le système. Les projets apparaîtront ici une fois créés.
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => fetchData()}
-                          disabled={isLoading}
-                        >
-                          Actualiser la liste
-                        </Button>
-                      </EmptyState>
-                    </TableCell>
-                  </tr>
-                ) : (
-                  projects.map((project) => {
-                    console.log("Rendering project:", project) // DEBUG LOG
-                    return (
-                      <TableRow key={project._id || project.id}>
-                        <TableCell style={{ fontWeight: 500 }}>
-                          {project.name}
-                          {project.language && (
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
-                              {project.language === "fr" ? "🇫🇷 Français" : project.language === "en" ? "🇬🇧 Anglais" : project.language}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{project.user}</TableCell>
-                        <TableCell>
-                          <div style={{ fontSize: "0.875rem" }}>
-                            {new Date(project.created_at).toLocaleDateString()}
-                          </div>
-                          {project.updated_at && (
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
-                              Modifié: {new Date(project.updated_at).toLocaleDateString()}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={project.requirements?.length > 0 || project.requirements_count > 0 ? "admin" : "outline"}>
-                            {project.requirements?.length || project.requirements_count || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={project.collaborator_details?.length > 0 || project.collaborator_count > 0 ? "user" : "outline"}>
-                            {project.collaborator_details?.length || project.collaborator_count || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell style={{ textAlign: "right" }}>
-                          <ButtonGroup>
-                            <Button 
-                              variant="primary" 
-                              size="sm" 
-                              onClick={() => {
-                                console.log("Eye button clicked for project:", project) // DEBUG LOG
-                                handleViewProjectDetails(project.id)
-                              }}
-                              disabled={isLoading}
-                              title="Voir les détails du projet"
-                            >
-                              <Eye size={14} />
-                            </Button>
-                            <Button 
-                              variant="danger" 
-                              size="sm" 
-                              onClick={() => handleDeleteProject(project.id)}
-                              disabled={isLoading}
-                              title="Supprimer le projet"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </ButtonGroup>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </tbody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Show total stats if projects exist */}
-      {projects.length > 0 && (
-        <Card style={{ marginTop: "1rem" }}>
-          <CardContent style={{ padding: "1rem 1.5rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem", color: "#6b7280" }}>
-              <span>Total des projets: <strong style={{ color: "#1f2937" }}>{projects.length}</strong></span>
-              <span>
-                Total des exigences: <strong style={{ color: "#1f2937" }}>
-                  {projects.reduce((sum, p) => sum + (p.requirements?.length || p.requirements_count || 0), 0)}
-                </strong>
-              </span>
-              <span>
-                Total des collaborateurs: <strong style={{ color: "#1f2937" }}>
-                  {projects.reduce((sum, p) => sum + (p.collaborator_details?.length || p.collaborator_count || 0), 0)}
-                </strong>
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </AnimatedDiv>
-  )
-}
-
+  // Main component return statement
   return (
     <Container>
       <Header>
@@ -1666,6 +2245,9 @@ export default function AdminPage() {
             </NavButton>
             <NavButton active={activeTab === "projects"} onClick={() => setActiveTab("projects")}>
               Projets
+            </NavButton>
+            <NavButton active={activeTab === "files"} onClick={() => setActiveTab("files")}>
+              Fichiers
             </NavButton>
 
             <NavButton onClick={handleLogout}>Déconnexion</NavButton>
@@ -1689,6 +2271,7 @@ export default function AdminPage() {
             {activeTab === "dashboard" && renderDashboard()}
             {activeTab === "users" && renderUsers()}
             {activeTab === "projects" && renderProjects()}
+            {activeTab === "files" && renderFiles()}
           </>
         )}
       </MainContent>

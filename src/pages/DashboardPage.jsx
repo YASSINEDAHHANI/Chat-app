@@ -10,9 +10,9 @@ const styles = {
     display: "flex",
     minHeight: "100vh",
     flexDirection: "column",
-    backgroundColor: "#ffffff", // Light background
+    backgroundColor: "#ffffff",
     fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-    color: "#1f2937", // Dark text for light mode
+    color: "#1f2937",
   },
   header: {
     borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
@@ -30,7 +30,7 @@ const styles = {
   logo: {
     fontSize: "1.5rem",
     fontWeight: "700",
-    color: "#3b82f6", // Keep blue logo color
+    color: "#5a209b",
     letterSpacing: "-0.025em",
     height: "2rem",
   },
@@ -42,7 +42,7 @@ const styles = {
   navLink: {
     fontSize: "0.875rem",
     fontWeight: "500",
-    color: "#1f2937",
+    color: "#5a209b",
     background: "none",
     border: "none",
     cursor: "pointer",
@@ -51,7 +51,7 @@ const styles = {
     transition: "all 0.2s",
   },
   navLinkHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    backgroundColor: "rgba(90, 32, 155, 0.1)",
   },
   mainContent: {
     flex: "1",
@@ -73,7 +73,7 @@ const styles = {
   pageTitle: {
     fontSize: "1.875rem",
     fontWeight: "700",
-    color: "#1f2937",
+    color: "#5a209b",
     margin: 0,
   },
   newProjectButton: {
@@ -81,7 +81,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "0.5rem 1rem",
-    backgroundColor: "#3b82f6", // Keep blue button
+    backgroundColor: "#5a209b",
     color: "white",
     borderRadius: "0.5rem",
     fontWeight: "500",
@@ -105,7 +105,7 @@ const styles = {
     opacity: 0.6,
   },
   newProjectButtonHover: {
-    backgroundColor: "#2563eb", // Darker blue on hover
+    backgroundColor: "#43197a",
   },
   buttonIcon: {
     marginRight: "0.5rem",
@@ -134,7 +134,7 @@ const styles = {
   searchInput: {
     width: "100%",
     padding: "0.625rem 1rem 0.625rem 2.5rem",
-    backgroundColor: "#f3f4f6", // Light gray background
+    backgroundColor: "#f3f4f6",
     color: "#1f2937",
     borderRadius: "0.5rem",
     border: "1px solid rgba(0, 0, 0, 0.1)",
@@ -144,8 +144,8 @@ const styles = {
     boxSizing: "border-box",
   },
   searchInputFocus: {
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
+    borderColor: "#5a209b",
+    boxShadow: "0 0 0 1px #5a209b",
   },
   projectGrid: {
     display: "grid",
@@ -153,8 +153,8 @@ const styles = {
     gap: "1.5rem",
   },
   projectCard: {
-    backgroundColor: "#ffffff", // White background
-    borderRadius: "0.5rem",
+    backgroundColor: "#ffffff",
+    borderRadius: "0.75rem",
     border: "1px solid rgba(0, 0, 0, 0.1)",
     overflow: "hidden",
     cursor: "pointer",
@@ -162,9 +162,9 @@ const styles = {
     boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
   },
   cardHover: {
-    borderColor: "rgba(0, 0, 0, 0.2)",
+    borderColor: "#5a209b",
     transform: "translateY(-2px)",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    boxShadow: "0 4px 6px -1px rgba(90, 32, 155, 0.1), 0 2px 4px -1px rgba(90, 32, 155, 0.06)",
   },
   cardHeader: {
     display: "flex",
@@ -190,8 +190,8 @@ const styles = {
     justifyContent: "center",
   },
   cardMenuButtonHover: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    color: "#1f2937",
+    backgroundColor: "rgba(90, 32, 155, 0.1)",
+    color: "#5a209b",
   },
   cardContent: {
     padding: "0 1.25rem 1.25rem",
@@ -228,8 +228,8 @@ const styles = {
     fontSize: "0.75rem",
     fontWeight: "500",
     borderRadius: "9999px",
-    backgroundColor: "rgba(59, 130, 246, 0.1)", // Blue with opacity
-    color: "#3b82f6",
+    backgroundColor: "rgba(90, 32, 155, 0.1)",
+    color: "#5a209b",
   },
   ownerBadge: {
     backgroundColor: "rgba(16, 185, 129, 0.1)",
@@ -369,6 +369,17 @@ const styles = {
     color: "#4b5563",
     marginBottom: "0.5rem",
   },
+  formLabelRequired: {
+    display: "block",
+    fontSize: "0.875rem",
+    fontWeight: "500",
+    color: "#4b5563",
+    marginBottom: "0.5rem",
+  },
+  formLabelRequiredAfter: {
+    content: " *",
+    color: "#ef4444",
+  },
   input: {
     width: "100%",
     padding: "0.625rem 0.75rem",
@@ -382,8 +393,12 @@ const styles = {
     boxSizing: "border-box",
   },
   inputFocus: {
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
+    borderColor: "#5a209b",
+    boxShadow: "0 0 0 1px #5a209b",
+  },
+  inputError: {
+    borderColor: "#ef4444",
+    boxShadow: "0 0 0 1px #ef4444",
   },
   select: {
     width: "100%",
@@ -405,8 +420,8 @@ const styles = {
     paddingRight: "2.5rem",
   },
   selectFocus: {
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
+    borderColor: "#5a209b",
+    boxShadow: "0 0 0 1px #5a209b",
   },
   textarea: {
     width: "100%",
@@ -423,8 +438,12 @@ const styles = {
     boxSizing: "border-box",
   },
   textareaFocus: {
-    borderColor: "#3b82f6",
-    boxShadow: "0 0 0 1px #3b82f6",
+    borderColor: "#5a209b",
+    boxShadow: "0 0 0 1px #5a209b",
+  },
+  textareaError: {
+    borderColor: "#ef4444",
+    boxShadow: "0 0 0 1px #ef4444",
   },
   modalFooter: {
     marginTop: "1.5rem",
@@ -455,7 +474,7 @@ const styles = {
   },
   primaryButton: {
     padding: "0.625rem 1.25rem",
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#5a209b",
     color: "white",
     borderRadius: "0.5rem",
     border: "none",
@@ -465,7 +484,7 @@ const styles = {
     transition: "all 0.2s",
   },
   primaryButtonHover: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#43197a",
   },
   primaryButtonDisabled: {
     padding: "0.625rem 1.25rem",
@@ -481,6 +500,11 @@ const styles = {
   helperText: {
     fontSize: "0.75rem",
     color: "#6b7280",
+    marginTop: "0.5rem",
+  },
+  errorText: {
+    fontSize: "0.75rem",
+    color: "#ef4444",
     marginTop: "0.5rem",
   },
   loadingContainer: {
@@ -501,8 +525,8 @@ const styles = {
   // Role indicator styles
   roleIndicator: {
     padding: "0.5rem 1rem",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-    color: "#3b82f6",
+    backgroundColor: "rgba(90, 32, 155, 0.1)",
+    color: "#5a209b",
     borderRadius: "9999px",
     fontSize: "0.875rem",
     fontWeight: "500",
@@ -528,7 +552,7 @@ const styles = {
   },
   infoAlert: {
     backgroundColor: "#eff6ff",
-    borderLeft: "4px solid #3b82f6",
+    borderLeft: "4px solid #5a209b",
     padding: "1rem 1.5rem",
     borderRadius: "0.5rem",
     marginBottom: "1.5rem",
@@ -552,7 +576,7 @@ const styles = {
     cursor: "pointer",
   },
   userCheckboxHover: {
-    backgroundColor: "rgba(59, 130, 246, 0.05)",
+    backgroundColor: "rgba(90, 32, 155, 0.05)",
   },
   checkbox: {
     marginRight: "0.5rem",
@@ -570,12 +594,12 @@ const styles = {
   userTag: {
     display: "inline-flex",
     alignItems: "center",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    backgroundColor: "rgba(90, 32, 155, 0.1)",
     borderRadius: "9999px",
     padding: "0.25rem 0.75rem",
     fontSize: "0.75rem",
     fontWeight: "500",
-    color: "#3b82f6",
+    color: "#5a209b",
   },
   removeUserButton: {
     marginLeft: "0.375rem",
@@ -584,7 +608,7 @@ const styles = {
     justifyContent: "center",
     width: "1rem",
     height: "1rem",
-    color: "#3b82f6",
+    color: "#5a209b",
     background: "none",
     border: "none",
     borderRadius: "9999px",
@@ -750,7 +774,7 @@ const styles = {
   },
   saveButton: {
     padding: "0.75rem 1.5rem",
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#5a209b",
     color: "white",
     border: "none",
     borderRadius: "0.375rem",
@@ -761,7 +785,7 @@ const styles = {
     marginRight: "0.5rem",
   },
   saveButtonHover: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#43197a",
   },
   cancelButton: {
     padding: "0.75rem 1.5rem",
@@ -1094,7 +1118,10 @@ const CreateProjectModal = ({
   availableUsers,
   isLoadingUsers,
   fetchAvailableUsers,
+  projects, // Add projects prop to check for duplicates
 }) => {
+  const [errors, setErrors] = useState({})
+
   if (!isDialogOpen) return null
 
   // User selection handlers
@@ -1108,6 +1135,44 @@ const CreateProjectModal = ({
 
   const removeSelectedUser = (username) => {
     setSelectedUsers(selectedUsers.filter((user) => user !== username))
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+    
+    if (!newProjectName.trim()) {
+      newErrors.projectName = "Le nom du projet est obligatoire"
+    } else {
+      // Check if project name already exists (case-insensitive)
+      const existingProject = projects.find(
+        project => project.name.toLowerCase().trim() === newProjectName.toLowerCase().trim()
+      )
+      if (existingProject) {
+        newErrors.projectName = "Un projet avec ce nom existe déjà. Veuillez choisir un nom unique."
+      }
+    }
+    
+    if (!projectContext.trim()) {
+      newErrors.projectContext = "Le contexte du projet est obligatoire"
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = () => {
+    if (validateForm()) {
+      handleCreateProject()
+    }
+  }
+
+  // Clear errors when project name changes
+  const handleProjectNameChange = (e) => {
+    const value = e.target.value
+    setNewProjectName(value)
+    if (errors.projectName) {
+      setErrors({ ...errors, projectName: null })
+    }
   }
 
   return (
@@ -1124,39 +1189,56 @@ const CreateProjectModal = ({
         </div>
 
         <div style={styles.formGroup}>
-          <label style={styles.formLabel} htmlFor="project-name">
-            Nom du Projet*
+          <label style={styles.formLabelRequired} htmlFor="project-name">
+            Nom du Projet *
           </label>
           <input
             id="project-name"
             required
-            style={focusedInput === "projectName" ? { ...styles.input, ...styles.inputFocus } : styles.input}
+            style={
+              errors.projectName 
+                ? { ...styles.input, ...styles.inputError }
+                : focusedInput === "projectName" 
+                  ? { ...styles.input, ...styles.inputFocus } 
+                  : styles.input
+            }
             placeholder="Entrez le nom du projet"
             value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
+            onChange={handleProjectNameChange}
             onFocus={() => setFocusedInput("projectName")}
             onBlur={() => setFocusedInput(null)}
             aria-required="true"
           />
+          {errors.projectName && <div style={styles.errorText}>{errors.projectName}</div>}
         </div>
 
         <div style={styles.formGroup}>
-          <label style={styles.formLabel} htmlFor="project-context">
-            Context du Projet*
+          <label style={styles.formLabelRequired} htmlFor="project-context">
+            Context du Projet *
           </label>
           <textarea
             id="project-context"
             rows={4}
             required
             style={
-              focusedInput === "projectContext" ? { ...styles.textarea, ...styles.textareaFocus } : styles.textarea
+              errors.projectContext
+                ? { ...styles.textarea, ...styles.textareaError }
+                : focusedInput === "projectContext" 
+                  ? { ...styles.textarea, ...styles.textareaFocus } 
+                  : styles.textarea
             }
             placeholder="Décrivez les exigences fonctionnelles du projet..."
             value={projectContext}
-            onChange={(e) => setProjectContext(e.target.value)}
+            onChange={(e) => {
+              setProjectContext(e.target.value)
+              if (errors.projectContext) {
+                setErrors({ ...errors, projectContext: null })
+              }
+            }}
             onFocus={() => setFocusedInput("projectContext")}
             onBlur={() => setFocusedInput(null)}
           />
+          {errors.projectContext && <div style={styles.errorText}>{errors.projectContext}</div>}
         </div>
 
         <div style={styles.formGroup}>
@@ -1228,7 +1310,7 @@ const CreateProjectModal = ({
                           <div
                             key={user.username}
                             style={styles.userCheckbox}
-                            onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.05)")}
+                            onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(90, 32, 155, 0.05)")}
                             onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
                           >
                             <input
@@ -1257,7 +1339,7 @@ const CreateProjectModal = ({
                       type="button"
                       style={styles.removeUserButton}
                       onClick={() => removeSelectedUser(username)}
-                      onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
+                      onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(90, 32, 155, 0.2)")}
                       onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
                       aria-label={`Retirer l'utilisateur ${username}`}
                     >
@@ -1287,6 +1369,7 @@ const CreateProjectModal = ({
                 setSelectedUsers([])
                 setUserSearchQuery("")
                 setProjectLanguage("en")
+                setErrors({})
               }}
               onMouseEnter={() => setHoveredButton("cancel")}
               onMouseLeave={() => setHoveredButton(null)}
@@ -1297,14 +1380,14 @@ const CreateProjectModal = ({
             <button
               type="button"
               style={
-                !newProjectName.trim()
+                !newProjectName.trim() || !projectContext.trim() || Object.keys(errors).length > 0
                   ? styles.primaryButtonDisabled
                   : hoveredButton === "create"
                     ? { ...styles.primaryButton, ...styles.primaryButtonHover }
                     : styles.primaryButton
               }
-              onClick={handleCreateProject}
-              disabled={!newProjectName.trim()}
+              onClick={handleSubmit}
+              disabled={!newProjectName.trim() || !projectContext.trim() || Object.keys(errors).length > 0}
               onMouseEnter={() => setHoveredButton("create")}
               onMouseLeave={() => setHoveredButton(null)}
               aria-label="Créer le projet"
@@ -1345,14 +1428,45 @@ const ProjectSettingsModal = ({
   fetchAvailableUsers,
   isManager,
   isAdmin,
+  projects, // Add projects prop to check for duplicates
 }) => {
   const navigate = useNavigate()
+  const [settingsErrors, setSettingsErrors] = useState({})
 
   if (!isSettingsPopupOpen || !selectedSettingsProject) return null
 
   // Project settings handlers
+  const validateSettingsForm = () => {
+    const newErrors = {}
+    
+    if (!editedProjectName.trim()) {
+      newErrors.projectName = "Le nom du projet est obligatoire"
+    } else {
+      // Check if project name already exists (case-insensitive), excluding current project
+      const existingProject = projects.find(
+        project => 
+          project.id !== selectedSettingsProject.id && 
+          project.name.toLowerCase().trim() === editedProjectName.toLowerCase().trim()
+      )
+      if (existingProject) {
+        newErrors.projectName = "Un projet avec ce nom existe déjà. Veuillez choisir un nom unique."
+      }
+    }
+    
+    if (!editedProjectContext.trim()) {
+      newErrors.projectContext = "Le contexte du projet est obligatoire"
+    }
+    
+    setSettingsErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSaveSettings = async () => {
     if (!selectedSettingsProject) return
+
+    if (!validateSettingsForm()) {
+      return
+    }
 
     setIsLoadingSettings(true)
 
@@ -1366,6 +1480,7 @@ const ProjectSettingsModal = ({
       await fetchProjects()
       setIsSettingsPopupOpen(false)
       setSelectedSettingsProject(null)
+      setSettingsErrors({})
     } catch (error) {
       console.error("Error saving project settings:", error)
       alert("Échec de l'enregistrement des paramètres du projet")
@@ -1377,6 +1492,13 @@ const ProjectSettingsModal = ({
   const handleAddCollaborator = async () => {
     if (!newCollaboratorEmail.trim() || !selectedSettingsProject) return
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newCollaboratorEmail.trim())) {
+      setSettingsErrors({ ...settingsErrors, collaboratorEmail: "Format d'email invalide" })
+      return
+    }
+
     try {
       await api.post(`/projects/${selectedSettingsProject.id}/collaborators`, {
         email: newCollaboratorEmail.trim(),
@@ -1384,10 +1506,11 @@ const ProjectSettingsModal = ({
 
       await fetchProjectCollaborators(selectedSettingsProject.id)
       setNewCollaboratorEmail("")
+      setSettingsErrors({ ...settingsErrors, collaboratorEmail: null })
       await fetchProjects()
     } catch (error) {
       console.error("Error adding collaborator:", error)
-      alert(error.response?.data?.error || "Échec de l'ajout du collaborateur")
+      setSettingsErrors({ ...settingsErrors, collaboratorEmail: error.response?.data?.error || "Échec de l'ajout du collaborateur" })
     }
   }
 
@@ -1412,6 +1535,16 @@ const ProjectSettingsModal = ({
     setEditedProjectLanguage("en")
     setProjectCollaborators([])
     setNewCollaboratorEmail("")
+    setSettingsErrors({})
+  }
+
+  // Clear errors when project name changes
+  const handleProjectNameChange = (e) => {
+    const value = e.target.value
+    setEditedProjectName(value)
+    if (settingsErrors.projectName) {
+      setSettingsErrors({ ...settingsErrors, projectName: null })
+    }
   }
 
   return (
@@ -1443,22 +1576,30 @@ const ProjectSettingsModal = ({
           <>
             <div style={styles.settingsSection}>
               <h3 style={styles.sectionTitle}>
-                <SettingsIcon style={{ marginRight: "0.5rem", display: "inline-block" }} />
+                
                 Détails du Projet
               </h3>
 
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Nom du Projet</label>
+                <label style={styles.formLabelRequired} htmlFor="edit-project-name">Nom du Projet</label>
                 <input
+                  id="edit-project-name"
                   type="text"
                   value={editedProjectName}
-                  onChange={(e) => setEditedProjectName(e.target.value)}
-                  style={focusedInput === "editName" ? { ...styles.input, ...styles.inputFocus } : styles.input}
+                  onChange={handleProjectNameChange}
+                  style={
+                    settingsErrors.projectName
+                      ? { ...styles.input, ...styles.inputError }
+                      : focusedInput === "editName" 
+                        ? { ...styles.input, ...styles.inputFocus } 
+                        : styles.input
+                  }
                   onFocus={() => setFocusedInput("editName")}
                   onBlur={() => setFocusedInput(null)}
                   disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
                   aria-disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
                 />
+                {settingsErrors.projectName && <div style={styles.errorText}>{settingsErrors.projectName}</div>}
               </div>
 
               <div style={styles.formRow}>
@@ -1498,13 +1639,23 @@ const ProjectSettingsModal = ({
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Description</label>
+                <label style={styles.formLabelRequired} htmlFor="edit-project-context">Context du Projet</label>
                 <textarea
+                  id="edit-project-context"
                   value={editedProjectContext}
-                  onChange={(e) => setEditedProjectContext(e.target.value)}
+                  onChange={(e) => {
+                    setEditedProjectContext(e.target.value)
+                    if (settingsErrors.projectContext) {
+                      setSettingsErrors({ ...settingsErrors, projectContext: null })
+                    }
+                  }}
                   rows={4}
                   style={
-                    focusedInput === "editContext" ? { ...styles.textarea, ...styles.textareaFocus } : styles.textarea
+                    settingsErrors.projectContext
+                      ? { ...styles.textarea, ...styles.textareaError }
+                      : focusedInput === "editContext" 
+                        ? { ...styles.textarea, ...styles.textareaFocus } 
+                        : styles.textarea
                   }
                   onFocus={() => setFocusedInput("editContext")}
                   onBlur={() => setFocusedInput(null)}
@@ -1512,6 +1663,7 @@ const ProjectSettingsModal = ({
                   aria-disabled={!selectedSettingsProject.is_owner && userRole !== "admin"}
                   placeholder="Ajoutez une description pour votre projet..."
                 />
+                {settingsErrors.projectContext && <div style={styles.errorText}>{settingsErrors.projectContext}</div>}
               </div>
             </div>
 
@@ -1580,11 +1732,18 @@ const ProjectSettingsModal = ({
                     type="email"
                     placeholder="Entrez l'adresse email"
                     value={newCollaboratorEmail}
-                    onChange={(e) => setNewCollaboratorEmail(e.target.value)}
+                    onChange={(e) => {
+                      setNewCollaboratorEmail(e.target.value)
+                      if (settingsErrors.collaboratorEmail) {
+                        setSettingsErrors({ ...settingsErrors, collaboratorEmail: null })
+                      }
+                    }}
                     style={
-                      focusedInput === "newCollab"
-                        ? { ...styles.addCollaboratorInput, borderColor: "#3b82f6", boxShadow: "0 0 0 1px #3b82f6" }
-                        : styles.addCollaboratorInput
+                      settingsErrors.collaboratorEmail
+                        ? { ...styles.addCollaboratorInput, borderColor: "#ef4444", boxShadow: "0 0 0 1px #ef4444" }
+                        : focusedInput === "newCollab"
+                          ? { ...styles.addCollaboratorInput, borderColor: "#5a209b", boxShadow: "0 0 0 1px #5a209b" }
+                          : styles.addCollaboratorInput
                     }
                     onFocus={() => setFocusedInput("newCollab")}
                     onBlur={() => setFocusedInput(null)}
@@ -1612,14 +1771,19 @@ const ProjectSettingsModal = ({
                   </button>
                 </div>
               )}
+              {settingsErrors.collaboratorEmail && (
+                <div style={styles.errorText}>{settingsErrors.collaboratorEmail}</div>
+              )}
             </div>
 
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: "space-between",
+                alignItems: "center",
                 paddingTop: "1rem",
                 borderTop: "1px solid #e5e7eb",
+                gap: "0.75rem",
               }}
             >
               <button
@@ -1646,7 +1810,7 @@ const ProjectSettingsModal = ({
                   onClick={handleSaveSettings}
                   onMouseEnter={() => setHoveredButton("save-settings")}
                   onMouseLeave={() => setHoveredButton(null)}
-                  disabled={isLoadingSettings || !editedProjectName.trim()}
+                  disabled={isLoadingSettings || !editedProjectName.trim() || !editedProjectContext.trim() || Object.keys(settingsErrors).length > 0}
                   aria-label="Enregistrer les paramètres"
                 >
                   {isLoadingSettings ? "Enregistrement..." : "Enregistrer les Modifications"}
@@ -2045,6 +2209,7 @@ useEffect(() => {
           availableUsers={availableUsers}
           isLoadingUsers={isLoadingUsers}
           fetchAvailableUsers={fetchAvailableUsers}
+          projects={projects} // Add projects prop to check for duplicates
         />
 
         <ProjectSettingsModal
@@ -2074,6 +2239,7 @@ useEffect(() => {
           fetchAvailableUsers={fetchAvailableUsers}
           isManager={isManager}
           isAdmin={isAdmin}
+          projects={projects} // Add projects prop to check for duplicates
         />
       </main>
     </div>
