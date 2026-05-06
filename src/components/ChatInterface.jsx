@@ -26,7 +26,7 @@ function ChatInterface({ onClose, projectId, testCases, onUpdateTestCases }) {
         test_cases: testCases
       }).toString();
       
-      const eventSource = new EventSource(`/chat_with_assistant?${params}`);
+      const eventSource = new EventSource(`/api/chat_with_assistant?${params}`);
       
       let responseText = '';
       

@@ -9,9 +9,7 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await api.get('http://localhost:5000/check_session', {
-          withCredentials: true
-        });
+        const response = await api.get('/check_session');
         
         setIsAuthenticated(response.data.logged_in);
       } catch (error) {
